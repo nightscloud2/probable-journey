@@ -11,41 +11,10 @@
 
     <div id="mobile-log"></div>
 
-    <div id="title-screen" class="overlay-screen">
-        <div class="screen-title">UNEXPLORED ISLE</div>
-        <button class="start-btn" onclick="showCharacterCreation()" style="width: 200px;">START GAME</button>
-    </div>
-
-    <div id="creation-screen" class="overlay-screen" style="display:none;">
-        <div class="screen-title">CREATE YOUR HERO</div>
-        <div class="creation-container">
-            <div class="form-group">
-                <span class="form-label">Select Gender</span>
-                <div class="btn-option-group">
-                    <button class="option-btn active" id="btn-g-m" onclick="selectGender('MALE')">Male</button>
-                    <button class="option-btn" id="btn-g-f" onclick="selectGender('FEMALE')">Female</button>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <span class="form-label">Select Class</span>
-                <div class="btn-option-group">
-                    <button class="option-btn active" id="btn-c-brawler" onclick="selectClass('BRAWLER')">Brawler (Striking)</button>
-                    <button class="option-btn" id="btn-c-hunter" onclick="selectClass('HUNTER')">Hunter (Ranged)</button>
-                    <button class="option-btn" id="btn-c-mage" onclick="selectClass('MAGE')">Mage (Special)</button>
-                </div>
-            </div>
-
-            <div id="class-desc" style="font-size: 10px; color: #aaa; line-height: 1.4; height: 36px;">
-                Brawlers focus on raw power and close-range striking force.
-            </div>
-
-            <button class="start-btn" onclick="startGame()">BEGIN ADVENTURE</button>
-        </div>
-    </div>
-
+    <!-- 1. GAME CANVAS -->
     <div id="canvas-container"></div>
 
+    <!-- 2. GAME HUD & OVERLAYS -->
     <div id="target-info-overlay">
         <div class="target-name" id="target-name-lbl">Creature Name</div>
         <div class="target-status" id="target-status-lbl">Condition: Healthy</div>
@@ -92,6 +61,7 @@
         </div>
     </div>
 
+    <!-- 3. INVENTORY MODAL -->
     <div id="menu-modal">
         <div class="menu-header">
             <h2>CHARACTER & INVENTORY</h2>
@@ -135,10 +105,44 @@
                         <button class="craft-btn" id="btn-craft-wall" onclick="craftItem('wall')">CRAFT</button>
                     </div>
                 </div>
-                <div class="tab-content" id="tab-skills" style="display:none; color:#aaa; font-size:10px;" id="ui-skills-text">
+                <div class="tab-content" id="tab-skills" style="display:none; color:#aaa; font-size:10px;">
                     --
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- 4. MENU & TITLE OVERLAYS (Moved to bottom so they sit on top of everything) -->
+    <div id="title-screen" class="overlay-screen">
+        <div class="screen-title">UNEXPLORED ISLE</div>
+        <button class="start-btn" onclick="showCharacterCreation()" style="width: 200px;">START GAME</button>
+    </div>
+
+    <div id="creation-screen" class="overlay-screen" style="display:none;">
+        <div class="screen-title">CREATE YOUR HERO</div>
+        <div class="creation-container">
+            <div class="form-group">
+                <span class="form-label">Select Gender</span>
+                <div class="btn-option-group">
+                    <button class="option-btn active" id="btn-g-m" onclick="selectGender('MALE')">Male</button>
+                    <button class="option-btn" id="btn-g-f" onclick="selectGender('FEMALE')">Female</button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <span class="form-label">Select Class</span>
+                <div class="btn-option-group">
+                    <button class="option-btn active" id="btn-c-brawler" onclick="selectClass('BRAWLER')">Brawler (Striking)</button>
+                    <button class="option-btn" id="btn-c-hunter" onclick="selectClass('HUNTER')">Hunter (Ranged)</button>
+                    <button class="option-btn" id="btn-c-mage" onclick="selectClass('MAGE')">Mage (Special)</button>
+                </div>
+            </div>
+
+            <div id="class-desc" style="font-size: 10px; color: #aaa; line-height: 1.4; height: 36px;">
+                Brawlers focus on raw power and close-range striking force.
+            </div>
+
+            <button class="start-btn" onclick="startGame()">BEGIN ADVENTURE</button>
         </div>
     </div>
 

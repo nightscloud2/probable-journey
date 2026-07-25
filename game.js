@@ -3,8 +3,10 @@
 // =========================================================================
 function showMobileError(msg) {
     const logEl = document.getElementById('mobile-log');
-    logEl.style.display = 'block';
-    logEl.innerText += '[ERR] ' + msg + '\n';
+    if (logEl) {
+        logEl.style.display = 'block';
+        logEl.innerText += '[ERR] ' + msg + '\n';
+    }
 }
 
 window.onerror = function(msg, url, lineNo) {
@@ -18,33 +20,38 @@ window.onerror = function(msg, url, lineNo) {
 let playerGender = 'MALE';
 let playerClass = 'BRAWLER';
 
-function selectGender(g) {
+window.selectGender = function(g) {
     playerGender = g;
-    document.getElementById('btn-g-m').classList.toggle('active', g === 'MALE');
-    document.getElementById('btn-g-f').classList.toggle('active', g === 'FEMALE');
-}
+    document.getElementById('btn-g-m')?.classList.toggle('active', g === 'MALE');
+    document.getElementById('btn-g-f')?.classList.toggle('active', g === 'FEMALE');
+};
 
-function selectClass(c) {
+window.selectClass = function(c) {
     playerClass = c;
-    document.getElementById('btn-c-brawler').classList.toggle('active', c === 'BRAWLER');
-    document.getElementById('btn-c-hunter').classList.toggle('active', c === 'HUNTER');
-    document.getElementById('btn-c-mage').classList.toggle('active', c === 'MAGE');
+    document.getElementById('btn-c-brawler')?.classList.toggle('active', c === 'BRAWLER');
+    document.getElementById('btn-c-hunter')?.classList.toggle('active', c === 'HUNTER');
+    document.getElementById('btn-c-mage')?.classList.toggle('active', c === 'MAGE');
 
     const desc = document.getElementById('class-desc');
-    if (c === 'BRAWLER') desc.innerText = "Brawlers focus on raw power and close-range striking force.";
-    else if (c === 'HUNTER') desc.innerText = "Hunters use bows at range and lay bear traps to immobilize foes.";
-    else if (c === 'MAGE') desc.innerText = "Mages channel offensive elemental magic through staves and wands.";
-}
+    if (desc) {
+        if (c === 'BRAWLER') desc.innerText = "Brawlers focus on raw power and close-range striking force.";
+        else if (c === 'HUNTER') desc.innerText = "Hunters use bows at range and lay bear traps to immobilize foes.";
+        else if (c === 'MAGE') desc.innerText = "Mages channel offensive elemental magic through staves and wands.";
+    }
+};
 
-function showCharacterCreation() {
-    document.getElementById('title-screen').style.display = 'none';
-    document.getElementById('creation-screen').style.display = 'flex';
-}
+window.showCharacterCreation = function() {
+    const title = document.getElementById('title-screen');
+    const creation = document.getElementById('creation-screen');
+    if (title) title.style.display = 'none';
+    if (creation) creation.style.display = 'flex';
+};
 
-function startGame() {
-    document.getElementById('creation-screen').style.display = 'none';
+window.startGame = function() {
+    const creation = document.getElementById('creation-screen');
+    if (creation) creation.style.display = 'none';
     initGameEngine();
-}
+};
 
 // =========================================================================
 // [SECTION 2: ENGINE INIT & INVENTORY MANAGEMENT]
@@ -98,9 +105,9 @@ function initGameEngine() {
         document.getElementById('tab-craft').style.display = (tabName === 'craft') ? 'block' : 'none';
         document.getElementById('tab-skills').style.display = (tabName === 'skills') ? 'block' : 'none';
 
-        document.getElementById('tab-btn-inv').classList.toggle('active', tabName === 'inv');
-        document.getElementById('tab-btn-craft').classList.toggle('active', tabName === 'craft');
-        document.getElementById('tab-btn-skills').classList.toggle('active', tabName === 'skills');
+        document.getElementById('tab-btn-inv')?.classList.toggle('active', tabName === 'inv');
+        document.getElementById('tab-btn-craft')?.classList.toggle('active', tabName === 'craft');
+        document.getElementById('tab-btn-skills')?.classList.toggle('active', tabName === 'skills');
     };
 
     // =========================================================================
@@ -231,8 +238,8 @@ function initGameEngine() {
     chestMesh.position.set(3.5, getTerrainHeight(3.5, 28) + 0.4, 28);
     scene.add(chestMesh);
 
-    const harvestables = [];
-    const obstacleColliders = [];
+    let harvestables = [];
+    let obstacleColliders = [];
 
     const chestData = { isChest: true, mesh: chestMesh, x: 3.5, z: 28, radius: 0.8 };
     harvestables.push(chestData);
@@ -285,6 +292,12 @@ function initGameEngine() {
         else spawnProp('stone', rx, rz);
     }
 
+    function removeHarvestable(item) {
+        scene.remove(item.mesh);
+        harvestables = harvestables.filter(h => h !== item);
+        obstacleColliders = obstacleColliders.filter(o => o !== item);
+    }
+
     // =========================================================================
     // [SECTION 6: AUTONOMOUS CREATURE SYSTEM]
     // =========================================================================
@@ -332,9 +345,15 @@ function initGameEngine() {
 
         takeDamage(amt) {
             this.hp -= amt;
-            if (this.hp <= (this.maxHp * 0.1)) this.state = 'SUBMITTED';
-            else if (this.temperament !== 'DOCILE') this.state = 'HOSTILE';
-            else this.state = 'FLEEING';
+            if (this.hp <= 0) {
+                removeHarvestable(this);
+            } else if (this.hp <= (this.maxHp * 0.1)) {
+                this.state = 'SUBMITTED';
+            } else if (this.temperament !== 'DOCILE') {
+                this.state = 'HOSTILE';
+            } else {
+                this.state = 'FLEEING';
+            }
         }
 
         getConditionText() {
@@ -416,8 +435,16 @@ function initGameEngine() {
         if (playerClass === 'BRAWLER') {
             for (let h of harvestables) {
                 if (Math.hypot(playerGroup.position.x - h.x, playerGroup.position.z - h.z) < 2.2) {
-                    if (h.isCreature) h.takeDamage(8);
-                    else h.hp--;
+                    if (h.isCreature) {
+                        h.takeDamage(8);
+                    } else if (!h.isChest) {
+                        h.hp--;
+                        if (h.hp <= 0) {
+                            inventory[h.dropType] += 3;
+                            updateUI();
+                            removeHarvestable(h);
+                        }
+                    }
                     break;
                 }
             }
@@ -470,22 +497,28 @@ function initGameEngine() {
         }
     }
 
-    attackBtn.onclick = performPrimaryAttack;
-    skillBtn.onclick = performClassSkill;
+    if (attackBtn) attackBtn.onclick = performPrimaryAttack;
+    if (skillBtn) skillBtn.onclick = performClassSkill;
 
-    document.getElementById('btn-interact').onclick = () => {
-        if (!chestLooted && Math.hypot(playerGroup.position.x - chestData.x, playerGroup.position.z - chestData.z) < 2.5) {
-            chestLooted = true;
-            inventory.hatchet += 1;
-            inventory.knife += 1;
-            updateUI();
-            scene.remove(chestMesh);
-        }
-    };
+    const interactBtn = document.getElementById('btn-interact');
+    if (interactBtn) {
+        interactBtn.onclick = () => {
+            if (!chestLooted && Math.hypot(playerGroup.position.x - chestData.x, playerGroup.position.z - chestData.z) < 2.5) {
+                chestLooted = true;
+                inventory.hatchet += 1;
+                inventory.knife += 1;
+                updateUI();
+                removeHarvestable(chestData);
+            }
+        };
+    }
 
-    document.getElementById('btn-jump').onclick = () => {
-        if (isGrounded) { playerVY = 0.24; isGrounded = false; }
-    };
+    const jumpBtn = document.getElementById('btn-jump');
+    if (jumpBtn) {
+        jumpBtn.onclick = () => {
+            if (isGrounded) { playerVY = 0.24; isGrounded = false; }
+        };
+    }
 
     // =========================================================================
     // [SECTION 8: JOYSTICK CONTROL SYSTEM]
@@ -495,6 +528,7 @@ function initGameEngine() {
     const knobEl = document.getElementById('joystick-knob');
 
     function handleJoystick(e) {
+        if (!baseEl || !knobEl) return;
         const rect = baseEl.getBoundingClientRect();
         const touch = e.touches ? e.touches[0] : e;
         let dx = touch.clientX - (rect.left + rect.width / 2);
@@ -508,13 +542,15 @@ function initGameEngine() {
     }
 
     function resetJoystick() {
-        knobEl.style.transform = `translate(-50%, -50%)`;
+        if (knobEl) knobEl.style.transform = `translate(-50%, -50%)`;
         joystickVector = { x: 0, y: 0 };
     }
 
-    baseEl.addEventListener('pointerdown', (e) => { e.stopPropagation(); baseEl.setPointerCapture(e.pointerId); handleJoystick(e); });
-    baseEl.addEventListener('pointermove', (e) => { if (baseEl.hasPointerCapture(e.pointerId)) handleJoystick(e); });
-    baseEl.addEventListener('pointerup', (e) => { baseEl.releasePointerCapture(e.pointerId); resetJoystick(); });
+    if (baseEl) {
+        baseEl.addEventListener('pointerdown', (e) => { e.stopPropagation(); baseEl.setPointerCapture(e.pointerId); handleJoystick(e); });
+        baseEl.addEventListener('pointermove', (e) => { if (baseEl.hasPointerCapture(e.pointerId)) handleJoystick(e); });
+        baseEl.addEventListener('pointerup', (e) => { baseEl.releasePointerCapture(e.pointerId); resetJoystick(); });
+    }
 
     // =========================================================================
     // [SECTION 9: CAMERA SYSTEM (SWIPE & LOCK)]
@@ -524,14 +560,15 @@ function initGameEngine() {
     let isSwipingCamera = false;
     let lastTouchX = 0;
 
-    const camModeBtn = document.getElementById('btn-cam-mode');
-    camModeBtn.onclick = () => {
+    window.toggleCameraMode = function() {
         isCameraLocked = !isCameraLocked;
-        camModeBtn.innerText = isCameraLocked ? '🔒 CAM: LOCKED' : '🔓 CAM: FREE';
-        camModeBtn.style.color = isCameraLocked ? '#34d399' : '#fbbf24';
+        const camModeBtn = document.getElementById('btn-cam-mode');
+        if (camModeBtn) {
+            camModeBtn.innerText = isCameraLocked ? '🔒 CAM: LOCKED' : '🔓 CAM: FREE';
+            camModeBtn.style.color = isCameraLocked ? '#34d399' : '#fbbf24';
+        }
     };
 
-    // Touch/Pointer Swipe Listener
     window.addEventListener('pointerdown', (e) => {
         if (e.target.closest('button') || e.target.closest('#menu-modal') || e.target.closest('#joystick-base')) return;
         if (!isCameraLocked) {
@@ -550,11 +587,6 @@ function initGameEngine() {
 
     window.addEventListener('pointerup', () => { isSwipingCamera = false; });
     window.addEventListener('pointercancel', () => { isSwipingCamera = false; });
-
-    // Modal Handlers
-    const menuModal = document.getElementById('menu-modal');
-    document.getElementById('btn-menu-open').onclick = () => { updateUI(); menuModal.style.display = 'flex'; };
-    document.getElementById('btn-menu-close').onclick = () => { menuModal.style.display = 'none'; };
 
     updateUI();
 
@@ -607,7 +639,6 @@ function initGameEngine() {
             }
         }
 
-        // Lock camera angle instantly to player angle when LOCKED (eliminates lag discordance)
         if (isCameraLocked) {
             cameraAngle = playerGroup.rotation.y;
         }
@@ -621,7 +652,7 @@ function initGameEngine() {
             p.mesh.position.z += p.dirZ * p.speed * delta;
 
             for (let c of creatures) {
-                if (Math.hypot(p.mesh.position.x - c.x, p.mesh.position.z - c.z) < 1.2) {
+                if (c.hp > 0 && Math.hypot(p.mesh.position.x - c.x, p.mesh.position.z - c.z) < 1.2) {
                     c.takeDamage(p.damage);
                     p.life = 0;
                     break;
@@ -637,7 +668,7 @@ function initGameEngine() {
         for (let i = traps.length - 1; i >= 0; i--) {
             const t = traps[i];
             for (let c of creatures) {
-                if (Math.hypot(t.x - c.x, t.z - c.z) < 1.0) {
+                if (c.hp > 0 && Math.hypot(t.x - c.x, t.z - c.z) < 1.0) {
                     c.rootedTimer = 4.0;
                     c.takeDamage(5);
                     scene.remove(t.mesh);
@@ -660,23 +691,21 @@ function initGameEngine() {
             targetRing.visible = true;
 
             if (closest.isCreature) {
-                targetOverlay.style.display = 'block';
+                if (targetOverlay) targetOverlay.style.display = 'block';
                 document.getElementById('target-name-lbl').innerText = closest.name;
                 document.getElementById('target-status-lbl').innerText = closest.getConditionText();
             } else {
-                targetOverlay.style.display = 'none';
+                if (targetOverlay) targetOverlay.style.display = 'none';
             }
         } else {
             targetRing.visible = false;
-            targetOverlay.style.display = 'none';
+            if (targetOverlay) targetOverlay.style.display = 'none';
         }
 
-        // Dynamic distance scaling based on Aspect Ratio
         const aspect = window.innerWidth / window.innerHeight;
-        const camDistance = aspect > 1.0 ? 5.5 : 7.0; // Pull camera in closer during Landscape mode
+        const camDistance = aspect > 1.0 ? 5.5 : 7.0;
         const camHeight = aspect > 1.0 ? 2.8 : 3.5;
 
-        // Instant direct camera positioning
         camera.position.x = playerGroup.position.x + Math.sin(cameraAngle) * camDistance;
         camera.position.z = playerGroup.position.z + Math.cos(cameraAngle) * camDistance;
         camera.position.y = playerGroup.position.y + camHeight;
@@ -692,4 +721,4 @@ function initGameEngine() {
         camera.updateProjectionMatrix();
         renderer.setSize(window.innerWidth, window.innerHeight);
     });
-        }
+                }

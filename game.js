@@ -1,3 +1,6 @@
+// =========================================================================
+// [SECTION 0: ERROR HANDLING & LOGGING]
+// =========================================================================
 function showMobileError(msg) {
     const logEl = document.getElementById('mobile-log');
     logEl.style.display = 'block';
@@ -9,7 +12,9 @@ window.onerror = function(msg, url, lineNo) {
     return false;
 };
 
-// --- GAME STATE ---
+// =========================================================================
+// [SECTION 1: UI STATE & SELECTION HANDLERS]
+// =========================================================================
 let playerGender = 'MALE';
 let playerClass = 'BRAWLER';
 
@@ -41,7 +46,9 @@ function startGame() {
     initGameEngine();
 }
 
-// --- MAIN ENGINE ---
+// =========================================================================
+// [SECTION 2: ENGINE INIT & INVENTORY MANAGEMENT]
+// =========================================================================
 function initGameEngine() {
     const container = document.getElementById('canvas-container');
     let currentEnergy = 100;
@@ -96,7 +103,9 @@ function initGameEngine() {
         document.getElementById('tab-btn-skills').classList.toggle('active', tabName === 'skills');
     };
 
-    // --- 3D Scene & World Generation ---
+    // =========================================================================
+    // [SECTION 3: THREE.JS SCENE, LIGHTING & TERRAIN]
+    // =========================================================================
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x87ceeb);
     scene.fog = new THREE.FogExp2(0x87ceeb, 0.012);
@@ -113,20 +122,16 @@ function initGameEngine() {
     sunLight.position.set(30, 60, 20);
     scene.add(sunLight);
 
-    // Terrain Generation: Beach -> Forest -> Mountains
+    // Terrain Function & Generation
     const WORLD_SIZE = 140;
     function getTerrainHeight(x, z) {
-        // Ocean / Beach shore line at Z > 30
-        if (z > 35) return -0.5; // Water height
+        if (z > 35) return -0.5;
         let height = 0;
         if (z > 20) {
-            // Sandy beach shore
             height = (35 - z) * 0.1;
         } else if (z < -30) {
-            // Mountain range in the background
             height = Math.abs(z + 30) * 0.6 + Math.sin(x * 0.2) * 4.0;
         } else {
-            // Coastal Forest hills
             height = Math.sin(x * 0.08) * Math.cos(z * 0.08) * 2.5 + 1.0;
         }
         return height;
@@ -143,13 +148,12 @@ function initGameEngine() {
         const y = getTerrainHeight(x, z);
         pos.setY(i, y);
 
-        // Procedural Terrain Colors (Sand, Grass, Rock)
         if (z > 20) {
-            colors.push(0.9, 0.85, 0.55); // Sand
+            colors.push(0.9, 0.85, 0.55);
         } else if (z < -30) {
-            colors.push(0.5, 0.5, 0.55);  // Mountain Rock
+            colors.push(0.5, 0.5, 0.55);
         } else {
-            colors.push(0.28, 0.52, 0.28); // Forest Grass
+            colors.push(0.28, 0.52, 0.28);
         }
     }
     groundGeo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
@@ -170,7 +174,9 @@ function initGameEngine() {
     waterMesh.position.set(0, -0.2, 45);
     scene.add(waterMesh);
 
-    // --- Player Character ---
+    // =========================================================================
+    // [SECTION 4: PLAYER ENTITY & TARGETING]
+    // =========================================================================
     const playerGroup = new THREE.Group();
     const PLAYER_RADIUS = 0.5;
 
@@ -189,7 +195,6 @@ function initGameEngine() {
     headMesh.position.y = 1.75;
     playerGroup.add(headMesh);
 
-    // Start player on the Beach shore
     playerGroup.position.set(0, getTerrainHeight(0, 28), 28);
     scene.add(playerGroup);
 
@@ -204,7 +209,9 @@ function initGameEngine() {
     targetRing.visible = false;
     scene.add(targetRing);
 
-    // --- Shipwreck & Wreckage Chest ---
+    // =========================================================================
+    // [SECTION 5: ENVIRONMENT & HARVESTABLES]
+    // =========================================================================
     const boatGroup = new THREE.Group();
     const hull = new THREE.Mesh(
         new THREE.BoxGeometry(3.5, 1.2, 7.0),
@@ -216,7 +223,6 @@ function initGameEngine() {
     boatGroup.position.set(6, getTerrainHeight(6, 30) + 0.4, 30);
     scene.add(boatGroup);
 
-    // Treasure Chest
     let chestLooted = false;
     const chestMesh = new THREE.Mesh(
         new THREE.BoxGeometry(1.0, 0.8, 0.8),
@@ -225,11 +231,9 @@ function initGameEngine() {
     chestMesh.position.set(3.5, getTerrainHeight(3.5, 28) + 0.4, 28);
     scene.add(chestMesh);
 
-    // --- Environmental Objects & Structures ---
     const harvestables = [];
     const obstacleColliders = [];
 
-    // Add Chest to interactables
     const chestData = { isChest: true, mesh: chestMesh, x: 3.5, z: 28, radius: 0.8 };
     harvestables.push(chestData);
     obstacleColliders.push(chestData);
@@ -273,16 +277,17 @@ function initGameEngine() {
         obstacleColliders.push(itemData);
     }
 
-    // Populate Forest inland
     for (let i = 0; i < 40; i++) {
         const rx = (Math.random() - 0.5) * 80;
-        const rz = (Math.random() * -40) + 10; // Inland forest
+        const rz = (Math.random() * -40) + 10;
         const r = Math.random();
         if (r < 0.6) spawnProp('tree', rx, rz);
         else spawnProp('stone', rx, rz);
     }
 
-    // --- AUTONOMOUS CREATURE ENGINE ---
+    // =========================================================================
+    // [SECTION 6: AUTONOMOUS CREATURE SYSTEM]
+    // =========================================================================
     const creatures = [];
     const projectiles = [];
     const traps = [];
@@ -305,7 +310,6 @@ function initGameEngine() {
             this.x = template.x;
             this.z = template.z;
 
-            // AI Pathing / Autonomous Movement Variables
             this.targetX = this.x;
             this.targetZ = this.z;
             this.changeTargetTimer = 0;
@@ -346,13 +350,11 @@ function initGameEngine() {
 
             if (this.rootedTimer > 0) {
                 this.rootedTimer -= delta;
-                return; // Trapped, cannot move
+                return;
             }
 
             this.x = this.group.position.x;
             this.z = this.group.position.z;
-
-            const distToPlayer = Math.hypot(playerPos.x - this.x, playerPos.z - this.z);
 
             if (this.state === 'HOSTILE') {
                 this.targetX = playerPos.x;
@@ -361,7 +363,6 @@ function initGameEngine() {
                 this.targetX = this.x + (this.x - playerPos.x);
                 this.targetZ = this.z + (this.z - playerPos.z);
             } else if (this.state === 'IDLE') {
-                // Pick random autonomous roaming point
                 this.changeTargetTimer -= delta;
                 if (this.changeTargetTimer <= 0) {
                     this.targetX = this.x + (Math.random() - 0.5) * 20;
@@ -370,7 +371,6 @@ function initGameEngine() {
                 }
             }
 
-            // Move toward target path point
             const dx = this.targetX - this.x;
             const dz = this.targetZ - this.z;
             const distToTarget = Math.hypot(dx, dz);
@@ -380,12 +380,11 @@ function initGameEngine() {
                 const moveX = this.x + Math.sin(angle) * this.speed * delta;
                 const moveZ = this.z + Math.cos(angle) * this.speed * delta;
 
-                // Obstacle Collision Avoidance
                 let blocked = false;
                 for (let obs of obstacleColliders) {
                     if (obs !== this && Math.hypot(moveX - obs.x, moveZ - obs.z) < (this.radius + obs.radius)) {
                         blocked = true;
-                        this.changeTargetTimer = 0; // Pick new target if blocked
+                        this.changeTargetTimer = 0;
                         break;
                     }
                 }
@@ -401,20 +400,20 @@ function initGameEngine() {
         }
     }
 
-    // Spawn Initial Autonomous Creatures in Forest
     const boar = new AutonomousCreature({ name: 'Forest Boar', temperament: 'WARY', type: 'STRIKING', element: 'EARTH', hp: 25, x: -10, z: -5 });
     const stag = new AutonomousCreature({ name: 'Meadow Stag', temperament: 'DOCILE', type: 'SPECIAL', element: 'WIND', hp: 15, x: 12, z: 0 });
     creatures.push(boar, stag);
     harvestables.push(boar, stag);
     obstacleColliders.push(boar, stag);
 
-    // --- CLASS ATTACK & SKILL HANDLERS ---
+    // =========================================================================
+    // [SECTION 7: COMBAT, SKILLS & INTERACTION]
+    // =========================================================================
     const attackBtn = document.getElementById('btn-attack');
     const skillBtn = document.getElementById('btn-skill');
 
     function performPrimaryAttack() {
         if (playerClass === 'BRAWLER') {
-            // Melee Strike
             for (let h of harvestables) {
                 if (Math.hypot(playerGroup.position.x - h.x, playerGroup.position.z - h.z) < 2.2) {
                     if (h.isCreature) h.takeDamage(8);
@@ -423,7 +422,6 @@ function initGameEngine() {
                 }
             }
         } else if (playerClass === 'HUNTER' || playerClass === 'MAGE') {
-            // Spawn Ranged Projectile
             const pGeo = (playerClass === 'MAGE') ? new THREE.SphereGeometry(0.3) : new THREE.CylinderGeometry(0.05, 0.05, 0.8);
             const pMat = new THREE.MeshBasicMaterial({ color: (playerClass === 'MAGE') ? 0x00ffff : 0xffaa00 });
             const proj = new THREE.Mesh(pGeo, pMat);
@@ -446,7 +444,6 @@ function initGameEngine() {
 
     function performClassSkill() {
         if (playerClass === 'HUNTER') {
-            // Lay Bear Trap
             const trapMesh = new THREE.Mesh(
                 new THREE.CylinderGeometry(0.6, 0.6, 0.1),
                 new THREE.MeshStandardMaterial({ color: 0x333333 })
@@ -455,7 +452,6 @@ function initGameEngine() {
             scene.add(trapMesh);
             traps.push({ mesh: trapMesh, x: playerGroup.position.x, z: playerGroup.position.z });
         } else if (playerClass === 'MAGE') {
-            // Spell 2: Area Blast
             const blast = new THREE.Mesh(
                 new THREE.RingGeometry(0.5, 3.5, 16),
                 new THREE.MeshBasicMaterial({ color: 0xff00ff, side: THREE.DoubleSide })
@@ -477,7 +473,6 @@ function initGameEngine() {
     attackBtn.onclick = performPrimaryAttack;
     skillBtn.onclick = performClassSkill;
 
-    // Chest & Harvesting Interactions
     document.getElementById('btn-interact').onclick = () => {
         if (!chestLooted && Math.hypot(playerGroup.position.x - chestData.x, playerGroup.position.z - chestData.z) < 2.5) {
             chestLooted = true;
@@ -492,7 +487,9 @@ function initGameEngine() {
         if (isGrounded) { playerVY = 0.24; isGrounded = false; }
     };
 
-    // Joystick Logic
+    // =========================================================================
+    // [SECTION 8: JOYSTICK CONTROL SYSTEM]
+    // =========================================================================
     let joystickVector = { x: 0, y: 0 };
     const baseEl = document.getElementById('joystick-base');
     const knobEl = document.getElementById('joystick-knob');
@@ -515,29 +512,44 @@ function initGameEngine() {
         joystickVector = { x: 0, y: 0 };
     }
 
-    baseEl.addEventListener('pointerdown', (e) => { baseEl.setPointerCapture(e.pointerId); handleJoystick(e); });
+    baseEl.addEventListener('pointerdown', (e) => { e.stopPropagation(); baseEl.setPointerCapture(e.pointerId); handleJoystick(e); });
     baseEl.addEventListener('pointermove', (e) => { if (baseEl.hasPointerCapture(e.pointerId)) handleJoystick(e); });
     baseEl.addEventListener('pointerup', (e) => { baseEl.releasePointerCapture(e.pointerId); resetJoystick(); });
 
-    // Camera Controls
-    let isAutoCam = false;
+    // =========================================================================
+    // [SECTION 9: CAMERA SYSTEM (SWIPE & LOCK)]
+    // =========================================================================
     let cameraAngle = 0;
-    let camRotInput = 0;
+    let isCameraLocked = true;
+    let isSwipingCamera = false;
+    let lastTouchX = 0;
 
     const camModeBtn = document.getElementById('btn-cam-mode');
     camModeBtn.onclick = () => {
-        isAutoCam = !isAutoCam;
-        camModeBtn.innerText = isAutoCam ? '🎥 AUTO' : '🔒 FREE';
-        camModeBtn.style.background = isAutoCam ? '#ffaa00' : 'rgba(0, 255, 204, 0.85)';
+        isCameraLocked = !isCameraLocked;
+        camModeBtn.innerText = isCameraLocked ? '🔒 CAM: LOCKED' : '🔓 CAM: FREE';
+        camModeBtn.style.color = isCameraLocked ? '#34d399' : '#fbbf24';
     };
 
-    function bindCam(id, val) {
-        const b = document.getElementById(id);
-        b.addEventListener('pointerdown', () => camRotInput = val);
-        b.addEventListener('pointerup', () => camRotInput = 0);
-    }
-    bindCam('btn-cam-left', -1);
-    bindCam('btn-cam-right', 1);
+    // Touch/Pointer Swipe Listener
+    window.addEventListener('pointerdown', (e) => {
+        if (e.target.closest('button') || e.target.closest('#menu-modal') || e.target.closest('#joystick-base')) return;
+        if (!isCameraLocked) {
+            isSwipingCamera = true;
+            lastTouchX = e.clientX;
+        }
+    });
+
+    window.addEventListener('pointermove', (e) => {
+        if (isSwipingCamera && !isCameraLocked) {
+            const deltaX = e.clientX - lastTouchX;
+            cameraAngle -= deltaX * 0.005;
+            lastTouchX = e.clientX;
+        }
+    });
+
+    window.addEventListener('pointerup', () => { isSwipingCamera = false; });
+    window.addEventListener('pointercancel', () => { isSwipingCamera = false; });
 
     // Modal Handlers
     const menuModal = document.getElementById('menu-modal');
@@ -556,16 +568,14 @@ function initGameEngine() {
         return true;
     }
 
-    // --- Main Game Loop ---
+    // =========================================================================
+    // [SECTION 10: MAIN ANIMATION & GAME LOOP]
+    // =========================================================================
     const clock = new THREE.Clock();
-    const CAM_DISTANCE = 8.0;
-    const CAM_HEIGHT = 3.5;
 
     function animate() {
         requestAnimationFrame(animate);
         const delta = clock.getDelta();
-
-        if (camRotInput !== 0) cameraAngle += camRotInput * 2.2 * delta;
 
         const jx = joystickVector.x;
         const jy = joystickVector.y;
@@ -581,8 +591,7 @@ function initGameEngine() {
             if (canMoveTo(nextX, playerGroup.position.z)) playerGroup.position.x = nextX;
             if (canMoveTo(playerGroup.position.x, nextZ)) playerGroup.position.z = nextZ;
 
-            const targetAngle = Math.atan2(dx, dz);
-            playerGroup.rotation.y = targetAngle;
+            playerGroup.rotation.y = Math.atan2(dx, dz);
         }
 
         const groundY = getTerrainHeight(playerGroup.position.x, playerGroup.position.z);
@@ -598,10 +607,13 @@ function initGameEngine() {
             }
         }
 
-        // Update Creatures
+        // Lock camera angle instantly to player angle when LOCKED (eliminates lag discordance)
+        if (isCameraLocked) {
+            cameraAngle = playerGroup.rotation.y;
+        }
+
         creatures.forEach(c => c.update(delta, playerGroup.position));
 
-        // Projectiles Update
         for (let i = projectiles.length - 1; i >= 0; i--) {
             const p = projectiles[i];
             p.life -= delta;
@@ -622,12 +634,11 @@ function initGameEngine() {
             }
         }
 
-        // Bear Traps Update
         for (let i = traps.length - 1; i >= 0; i--) {
             const t = traps[i];
             for (let c of creatures) {
                 if (Math.hypot(t.x - c.x, t.z - c.z) < 1.0) {
-                    c.rootedTimer = 4.0; // Root for 4s
+                    c.rootedTimer = 4.0;
                     c.takeDamage(5);
                     scene.remove(t.mesh);
                     traps.splice(i, 1);
@@ -636,7 +647,6 @@ function initGameEngine() {
             }
         }
 
-        // Target HUD Overlay (Hidden Stats Facet)
         let closest = null;
         let minDist = 3.5;
         harvestables.forEach(h => {
@@ -661,10 +671,15 @@ function initGameEngine() {
             targetOverlay.style.display = 'none';
         }
 
-        // Camera Position
-        camera.position.x = playerGroup.position.x + Math.sin(cameraAngle) * CAM_DISTANCE;
-        camera.position.z = playerGroup.position.z + Math.cos(cameraAngle) * CAM_DISTANCE;
-        camera.position.y = playerGroup.position.y + CAM_HEIGHT;
+        // Dynamic distance scaling based on Aspect Ratio
+        const aspect = window.innerWidth / window.innerHeight;
+        const camDistance = aspect > 1.0 ? 5.5 : 7.0; // Pull camera in closer during Landscape mode
+        const camHeight = aspect > 1.0 ? 2.8 : 3.5;
+
+        // Instant direct camera positioning
+        camera.position.x = playerGroup.position.x + Math.sin(cameraAngle) * camDistance;
+        camera.position.z = playerGroup.position.z + Math.cos(cameraAngle) * camDistance;
+        camera.position.y = playerGroup.position.y + camHeight;
         camera.lookAt(playerGroup.position.x, playerGroup.position.y + 1.2, playerGroup.position.z);
 
         renderer.render(scene, camera);
@@ -677,4 +692,4 @@ function initGameEngine() {
         camera.updateProjectionMatrix();
         renderer.setSize(window.innerWidth, window.innerHeight);
     });
-}
+        }

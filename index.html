@@ -4,1261 +4,281 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>3D Console RPG - Beach Landing Prototype</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
-        * {
-            box-sizing: border-box;
+        /* Essential base overrides for mobile WebGL touch handling */
+        html, body {
+            touch-action: none;
             user-select: none;
             -webkit-user-select: none;
-            touch-action: none;
-        }
-
-        html, body {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
             overflow: hidden;
-            background-color: #0b101d;
-            font-family: monospace, sans-serif;
+            background-color: #020617;
         }
-
-        #canvas-container {
-            width: 100vw;
-            height: 100vh;
-            position: absolute;
-            top: 0;
-            left: 0;
-            z-index: 1;
-        }
-
-        /* --- TITLE & CHAR CREATION SCREENS --- */
-        .overlay-screen {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: rgba(10, 15, 25, 0.95);
-            z-index: 200;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            color: #fff;
-            padding: 20px;
-        }
-
-        .screen-title {
-            font-size: 24px;
-            color: #00ffcc;
-            letter-spacing: 2px;
-            margin-bottom: 20px;
-            text-align: center;
-            text-shadow: 0 0 10px rgba(0,255,204,0.5);
-        }
-
-        .creation-container {
-            background: rgba(20, 30, 45, 0.8);
-            border: 2px solid #00ffcc;
-            border-radius: 12px;
-            padding: 20px;
-            width: 100%;
-            max-width: 450px;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .form-label {
-            font-size: 11px;
-            color: #8899aa;
-            text-transform: uppercase;
-        }
-
-        .btn-option-group {
-            display: flex;
-            gap: 8px;
-        }
-
-        .option-btn {
-            flex: 1;
-            padding: 10px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid #445566;
-            color: #fff;
-            border-radius: 6px;
-            font-weight: bold;
-            font-size: 12px;
-            cursor: pointer;
-            text-align: center;
-        }
-
-        .option-btn.active {
-            background: rgba(0, 255, 204, 0.2);
-            border-color: #00ffcc;
-            color: #00ffcc;
-        }
-
-        .start-btn {
-            background: #00ffcc;
-            color: #000;
-            border: none;
-            padding: 14px;
-            font-weight: bold;
-            font-size: 14px;
-            border-radius: 8px;
-            cursor: pointer;
-            margin-top: 10px;
-        }
-
-        /* --- HUD OVERLAYS --- */
-        #hud-bottom-left {
-            position: absolute;
-            bottom: 15px;
-            left: 15px;
-            z-index: 10;
-            display: flex;
-            gap: 8px;
-            align-items: flex-end;
-            pointer-events: none;
-        }
-
-        #minimap-box {
-            width: 80px;
-            height: 80px;
-            background: rgba(10, 15, 25, 0.85);
-            border: 2px solid #00ffcc;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #00ffcc;
-            font-size: 10px;
-            font-weight: bold;
-            box-shadow: 0 0 10px rgba(0, 255, 204, 0.2);
-        }
-
-        #status-bars {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            width: 130px;
-            background: rgba(0,0,0,0.75);
-            padding: 6px;
-            border-radius: 6px;
-            border: 1px solid #444;
-        }
-
-        .bar-container {
-            width: 100%;
-            height: 11px;
-            background: #222;
-            border-radius: 3px;
-            overflow: hidden;
-            position: relative;
-            border: 1px solid #555;
-        }
-
-        .bar-fill {
-            height: 100%;
-            width: 100%;
-            transition: width 0.15s ease-out;
-        }
-
-        .bar-fill.exp { background: #00ffaa; width: 0%; }
-        .bar-fill.hp { background: #ff3344; width: 100%; }
-        .bar-fill.energy { background: #ffcc00; width: 100%; }
-        .bar-fill.hunger { background: #a66a38; width: 100%; }
-
-        .bar-label {
-            position: absolute;
-            top: 0;
-            left: 4px;
-            font-size: 8px;
-            color: #fff;
-            line-height: 11px;
-            font-weight: bold;
-            text-shadow: 1px 1px 1px #000;
-        }
-
-        .top-right-menu {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            z-index: 10;
-        }
-
-        .menu-btn {
-            width: 44px;
-            height: 44px;
-            background: rgba(30, 30, 40, 0.85);
-            border: 2px solid #fff;
-            border-radius: 8px;
-            color: #fff;
-            font-size: 18px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+        /* Custom UI touch utility to guarantee crisp mobile response */
+        .touch-action-manipulation {
             touch-action: manipulation;
         }
-
-        .menu-btn:active { background: #00ffcc; color: #000; }
-
-        /* Bottom Center Hotbar */
-        #hotbar {
-            position: absolute;
-            bottom: 15px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 5px;
-            z-index: 10;
-            background: rgba(0,0,0,0.6);
-            padding: 6px;
-            border-radius: 10px;
-            border: 1px solid #555;
-        }
-
-        .hotbar-slot {
-            width: 38px;
-            height: 38px;
-            background: rgba(255,255,255,0.15);
-            border: 2px solid #aaa;
-            border-radius: 6px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            color: #fff;
-            font-size: 9px;
-            position: relative;
-        }
-
-        .hotbar-slot .icon { font-size: 13px; }
-        .hotbar-slot .count {
-            position: absolute;
-            bottom: 1px;
-            right: 3px;
-            font-weight: bold;
-            color: #00ffcc;
-        }
-
-        /* Targeted Creature HUD (Facets/Stats Hidden) */
-        #target-info-overlay {
-            position: absolute;
-            top: 15px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(10, 15, 25, 0.9);
-            border: 2px solid #00ffcc;
-            border-radius: 8px;
-            padding: 8px 16px;
-            color: #fff;
-            z-index: 10;
-            display: none;
-            text-align: center;
-            min-width: 200px;
-        }
-
-        #target-info-overlay .target-name { font-weight: bold; font-size: 13px; color: #00ffcc; }
-        #target-info-overlay .target-status { font-size: 10px; color: #ffcc00; margin-top: 2px; }
-
-        /* --- RIGHT CONTROLS --- */
-        .controls-right {
-            position: absolute;
-            bottom: 15px;
-            right: 15px;
-            z-index: 10;
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            gap: 6px;
-        }
-
-        .camera-utility-row { display: flex; gap: 6px; }
-        .radial-action-arc { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
-
-        .btn {
-            background: rgba(255, 255, 255, 0.85);
-            border: 2px solid #fff;
-            border-radius: 8px;
-            font-weight: bold;
-            font-size: 11px;
-            color: #000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            outline: none;
-            touch-action: manipulation;
-        }
-
-        .action-btn {
-            width: 76px;
-            height: 38px;
-            border-radius: 18px;
-            background: #ffaa00;
-            color: #000;
-            font-size: 9px;
-            border: 2px solid #fff;
-            display: flex;
-            flex-direction: column;
-            line-height: 1.1;
-        }
-
-        .action-btn:active { background: #00ffcc; }
-        .cam-btn { width: 38px; height: 38px; border-radius: 50%; font-size: 14px; }
-        .mode-btn { height: 38px; padding: 0 8px; border-radius: 18px; font-size: 10px; background: rgba(0, 255, 204, 0.85); }
-
-        #joystick-base {
-            width: 110px;
-            height: 110px;
-            background: rgba(255, 255, 255, 0.15);
-            border: 2px solid rgba(255, 255, 255, 0.5);
-            border-radius: 50%;
-            position: relative;
-            touch-action: none;
-            margin-top: 4px;
-        }
-
-        #joystick-knob {
-            width: 46px;
-            height: 46px;
-            background: rgba(0, 255, 204, 0.85);
-            border: 2px solid #fff;
-            border-radius: 50%;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            pointer-events: none;
-        }
-
-        /* --- MENU INTERFACE --- */
-        #menu-modal {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 92vw;
-            height: 85vh;
-            max-width: 750px;
-            max-height: 500px;
-            background: rgba(18, 22, 32, 0.96);
-            border: 2px solid #00ffcc;
-            border-radius: 12px;
-            z-index: 100;
-            display: none;
-            flex-direction: column;
-            overflow: hidden;
-            box-shadow: 0 0 20px rgba(0, 255, 204, 0.3);
-        }
-
-        .menu-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: rgba(10, 14, 22, 0.9);
-            padding: 8px 16px;
-            border-bottom: 2px solid #334455;
-        }
-
-        .menu-header h2 { margin: 0; color: #00ffcc; font-size: 14px; letter-spacing: 1px; }
-        .close-btn { background: #ff4444; color: #fff; border: none; padding: 4px 12px; border-radius: 4px; font-weight: bold; font-size: 11px; cursor: pointer; }
-        .menu-body { display: flex; flex: 1; overflow: hidden; }
-
-        .equipment-panel {
-            width: 48%;
-            background: rgba(255, 255, 255, 0.03);
-            border-right: 2px solid #334455;
-            padding: 10px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .paperdoll-container { display: grid; grid-template-columns: 50px 1fr 50px; gap: 8px; width: 100%; height: 100%; align-items: center; }
-        .equip-column { display: flex; flex-direction: column; gap: 6px; justify-content: center; }
-        .equip-slot { width: 44px; height: 44px; background: rgba(255, 255, 255, 0.08); border: 1px solid #667788; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
-        .equip-slot .slot-label { font-size: 7px; color: #8899aa; position: absolute; top: 2px; left: 3px; }
-
-        .character-avatar-box {
-            background: rgba(0, 0, 0, 0.4);
-            border: 1px solid #445566;
-            border-radius: 8px;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            color: #00ffcc;
-            font-size: 11px;
-            text-align: center;
-        }
-
-        .inventory-panel { width: 52%; display: flex; flex-direction: column; }
-        .tab-bar { display: flex; background: rgba(10, 14, 22, 0.8); border-bottom: 1px solid #334455; }
-        .tab-btn { flex: 1; padding: 8px 4px; background: transparent; border: none; color: #8899aa; font-size: 11px; text-align: center; cursor: pointer; }
-        .tab-btn.active { color: #00ffcc; border-bottom: 2px solid #00ffcc; background: rgba(0, 255, 204, 0.1); }
-        .tab-content { flex: 1; padding: 10px; overflow-y: auto; }
-        .inv-grid-large { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
-
-        .inv-item-slot {
-            aspect-ratio: 1;
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid #556677;
-            border-radius: 6px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            color: #fff;
-            font-size: 10px;
-            position: relative;
-        }
-        .inv-item-slot .qty { position: absolute; bottom: 2px; right: 4px; font-size: 9px; color: #00ffcc; font-weight: bold; }
-
-        .craft-recipe {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid #445566;
-            border-radius: 6px;
-            padding: 8px;
-            margin-bottom: 8px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .craft-recipe-info b { color: #00ffcc; font-size: 12px; }
-        .craft-recipe-info div { font-size: 9px; color: #aaa; margin-top: 2px; }
-        .craft-btn { background: #00ffcc; color: #000; border: none; padding: 6px 10px; border-radius: 4px; font-weight: bold; font-size: 10px; cursor: pointer; }
-        .craft-btn:disabled { background: #444; color: #888; cursor: not-allowed; }
-
-        #mobile-log { position: absolute; top: 45px; left: 10px; right: 10px; color: #ff5555; background: rgba(0,0,0,0.85); padding: 6px; font-size: 10px; z-index: 100; display: none; border-radius: 4px; max-height: 80px; overflow-y: auto; }
     </style>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
-<body>
+<body class="w-screen h-screen relative font-sans text-slate-100 antialiased select-none">
 
-    <div id="mobile-log"></div>
+    <!-- 0. MOBILE ERROR LOG -->
+    <div id="mobile-log" class="fixed top-2 left-2 z-50 bg-slate-950/90 text-red-400 font-mono text-[10px] p-2 rounded-lg border border-red-500/30 hidden max-h-32 max-w-[80vw] overflow-y-auto pointer-events-auto"></div>
 
-    <div id="title-screen" class="overlay-screen">
-        <div class="screen-title">UNEXPLORED ISLE</div>
-        <button class="start-btn" onclick="showCharacterCreation()" style="width: 200px;">START GAME</button>
+    <!-- 1. GAME CANVAS CONTAINER (Locked in Background) -->
+    <div id="canvas-container" class="absolute inset-0 z-0 pointer-events-none w-full h-full"></div>
+
+    <!-- 2. IN-GAME HUD & UI OVERLAYS -->
+    
+    <!-- Target Info HUD (Floating Top Center) -->
+    <div id="target-info-overlay" class="fixed top-4 left-1/2 -translate-x-1/2 z-10 hidden bg-slate-900/85 backdrop-blur-md border border-amber-500/40 rounded-xl px-4 py-2 shadow-lg text-center min-w-[160px]">
+        <div class="text-xs font-bold text-amber-400 tracking-wide" id="target-name-lbl">Creature Name</div>
+        <div class="text-[10px] text-slate-300" id="target-status-lbl">Condition: Healthy</div>
     </div>
 
-    <div id="creation-screen" class="overlay-screen" style="display:none;">
-        <div class="screen-title">CREATE YOUR HERO</div>
-        <div class="creation-container">
-            <div class="form-group">
-                <span class="form-label">Select Gender</span>
-                <div class="btn-option-group">
-                    <button class="option-btn active" id="btn-g-m" onclick="selectGender('MALE')">Male</button>
-                    <button class="option-btn" id="btn-g-f" onclick="selectGender('FEMALE')">Female</button>
-                </div>
+    <!-- Top Right Backpack / Menu Toggle Button -->
+    <div class="fixed top-4 right-4 z-20">
+        <button id="btn-menu-open" class="w-12 h-12 bg-slate-900/80 backdrop-blur-md border border-slate-700/80 rounded-2xl flex items-center justify-center text-xl shadow-lg active:scale-90 transition touch-action-manipulation pointer-events-auto">
+            🎒
+        </button>
+    </div>
+
+    <!-- Bottom Left HUD (Status Bars & Mini-Map Container) -->
+    <div id="hud-bottom-left" class="fixed bottom-4 left-4 z-10 flex gap-3 items-end pointer-events-none">
+        <div id="minimap-box" class="w-16 h-16 bg-slate-900/80 backdrop-blur-md border border-slate-700/80 rounded-2xl flex items-center justify-center text-[10px] font-bold text-slate-400 shadow-lg">
+            MAP
+        </div>
+        <div id="status-bars" class="w-36 space-y-1 bg-slate-900/80 backdrop-blur-md p-2 rounded-2xl border border-slate-800 shadow-lg">
+            <!-- EXP Bar -->
+            <div class="relative w-full h-3 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
+                <div class="h-full bg-indigo-500 w-full"></div>
+                <span class="absolute inset-0 flex items-center justify-center text-[8px] font-extrabold tracking-wider text-white drop-shadow">EXP Lv.1</span>
             </div>
-
-            <div class="form-group">
-                <span class="form-label">Select Class</span>
-                <div class="btn-option-group">
-                    <button class="option-btn active" id="btn-c-brawler" onclick="selectClass('BRAWLER')">Brawler (Striking)</button>
-                    <button class="option-btn" id="btn-c-hunter" onclick="selectClass('HUNTER')">Hunter (Ranged)</button>
-                    <button class="option-btn" id="btn-c-mage" onclick="selectClass('MAGE')">Mage (Special)</button>
-                </div>
+            <!-- HP Bar -->
+            <div class="relative w-full h-3 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
+                <div class="h-full bg-rose-500 transition-all duration-200" id="bar-hp" style="width: 100%;"></div>
+                <span class="absolute inset-0 flex items-center justify-center text-[8px] font-extrabold tracking-wider text-white drop-shadow">HEALTH</span>
             </div>
-
-            <div id="class-desc" style="font-size: 10px; color: #aaa; line-height: 1.4; height: 36px;">
-                Brawlers focus on raw power and close-range striking force.
+            <!-- Energy Bar -->
+            <div class="relative w-full h-3 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
+                <div class="h-full bg-amber-500 transition-all duration-200" id="bar-energy" style="width: 100%;"></div>
+                <span class="absolute inset-0 flex items-center justify-center text-[8px] font-extrabold tracking-wider text-white drop-shadow">ENERGY</span>
             </div>
-
-            <button class="start-btn" onclick="startGame()">BEGIN ADVENTURE</button>
-        </div>
-    </div>
-
-    <div id="canvas-container"></div>
-
-    <div id="target-info-overlay">
-        <div class="target-name" id="target-name-lbl">Creature Name</div>
-        <div class="target-status" id="target-status-lbl">Condition: Healthy</div>
-    </div>
-
-    <div id="hud-bottom-left">
-        <div id="minimap-box">MAP</div>
-        <div id="status-bars">
-            <div class="bar-container"><div class="bar-fill exp"></div><span class="bar-label">EXP Lv.1</span></div>
-            <div class="bar-container"><div class="bar-fill hp" id="bar-hp"></div><span class="bar-label">HEALTH</span></div>
-            <div class="bar-container"><div class="bar-fill energy" id="bar-energy"></div><span class="bar-label">ENERGY</span></div>
-            <div class="bar-container"><div class="bar-fill hunger"></div><span class="bar-label">HUNGER</span></div>
-        </div>
-    </div>
-
-    <div class="top-right-menu">
-        <button id="btn-menu-open" class="menu-btn">🎒</button>
-    </div>
-
-    <div id="hotbar">
-        <div class="hotbar-slot"><span class="icon">🪓</span><span class="count" id="count-hatchet">0</span></div>
-        <div class="hotbar-slot"><span class="icon">🔪</span><span class="count" id="count-knife">0</span></div>
-        <div class="hotbar-slot"><span class="icon">🪵</span><span class="count" id="count-wood">0</span></div>
-        <div class="hotbar-slot"><span class="icon">🪨</span><span class="count" id="count-stone">0</span></div>
-        <div class="hotbar-slot"><span class="icon">🥩</span><span class="count" id="count-meat">0</span></div>
-    </div>
-
-    <div class="controls-right">
-        <div class="camera-utility-row">
-            <button id="btn-cam-left" class="btn cam-btn">↺</button>
-            <button id="btn-cam-mode" class="btn mode-btn">🔒 FREE</button>
-            <button id="btn-cam-right" class="btn cam-btn">↻</button>
-        </div>
-
-        <div class="radial-action-arc">
-            <button id="btn-attack" class="btn action-btn">ATTACK ⚔️</button>
-            <button id="btn-skill" class="btn action-btn">SKILL ✨</button>
-            <button id="btn-interact" class="btn action-btn">INTERACT 🤝</button>
-            <button id="btn-jump" class="btn action-btn">JUMP 🦘</button>
-        </div>
-
-        <div id="joystick-base">
-            <div id="joystick-knob"></div>
-        </div>
-    </div>
-
-    <div id="menu-modal">
-        <div class="menu-header">
-            <h2>CHARACTER & INVENTORY</h2>
-            <button id="btn-menu-close" class="close-btn">✕ CLOSE</button>
-        </div>
-        <div class="menu-body">
-            <div class="equipment-panel">
-                <div class="paperdoll-container">
-                    <div class="equip-column">
-                        <div class="equip-slot"><span class="slot-label">MAIN</span><span id="equip-weapon-icon">👊</span></div>
-                        <div class="equip-slot"><span class="slot-label">HEAD</span></div>
-                        <div class="equip-slot"><span class="slot-label">CHEST</span></div>
-                    </div>
-                    <div class="character-avatar-box">
-                        <div style="font-size: 38px; margin-bottom: 2px;">🧍</div>
-                        <b id="ui-char-class">BRAWLER</b>
-                        <span style="font-size:8px; color:#888;" id="ui-char-gender">Male Adventurer</span>
-                    </div>
-                    <div class="equip-column">
-                        <div class="equip-slot"><span class="slot-label">OFF</span></div>
-                        <div class="equip-slot"><span class="slot-label">LEGS</span></div>
-                        <div class="equip-slot"><span class="slot-label">FEET</span></div>
-                    </div>
-                </div>
+            <!-- Hunger Bar -->
+            <div class="relative w-full h-3 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
+                <div class="h-full bg-emerald-500 w-3/4"></div>
+                <span class="absolute inset-0 flex items-center justify-center text-[8px] font-extrabold tracking-wider text-white drop-shadow">HUNGER</span>
             </div>
-            <div class="inventory-panel">
-                <div class="tab-bar">
-                    <button class="tab-btn active" id="tab-btn-inv" onclick="switchTab('inv')">🎒 Inventory</button>
-                    <button class="tab-btn" id="tab-btn-craft" onclick="switchTab('craft')">🔨 Crafting</button>
-                    <button class="tab-btn" id="tab-btn-skills" onclick="switchTab('skills')">⚡ Spells</button>
-                </div>
-                <div class="tab-content" id="tab-inv">
-                    <div class="inv-grid-large" id="inventory-grid"></div>
-                </div>
-                <div class="tab-content" id="tab-craft" style="display:none;">
-                    <div class="craft-recipe">
-                        <div class="craft-recipe-info">
-                            <b>🧱 Wooden Wall</b>
-                            <div>Requires: 2 Wood</div>
+        </div>
+    </div>
+
+    <!-- Hotbar (Bottom Center) -->
+    <div id="hotbar" class="fixed bottom-4 left-1/2 -translate-x-1/2 z-10 flex gap-1.5 bg-slate-900/80 backdrop-blur-md p-1.5 rounded-2xl border border-slate-800 shadow-xl pointer-events-auto">
+        <div class="relative w-10 h-10 bg-slate-800/80 border border-slate-700/60 rounded-xl flex items-center justify-center text-lg">
+            <span>🪓</span><span class="absolute bottom-0.5 right-1 text-[9px] font-black text-amber-400" id="count-hatchet">0</span>
+        </div>
+        <div class="relative w-10 h-10 bg-slate-800/80 border border-slate-700/60 rounded-xl flex items-center justify-center text-lg">
+            <span>🔪</span><span class="absolute bottom-0.5 right-1 text-[9px] font-black text-amber-400" id="count-knife">0</span>
+        </div>
+        <div class="relative w-10 h-10 bg-slate-800/80 border border-slate-700/60 rounded-xl flex items-center justify-center text-lg">
+            <span>🪵</span><span class="absolute bottom-0.5 right-1 text-[9px] font-black text-amber-400" id="count-wood">0</span>
+        </div>
+        <div class="relative w-10 h-10 bg-slate-800/80 border border-slate-700/60 rounded-xl flex items-center justify-center text-lg">
+            <span>🪨</span><span class="absolute bottom-0.5 right-1 text-[9px] font-black text-amber-400" id="count-stone">0</span>
+        </div>
+        <div class="relative w-10 h-10 bg-slate-800/80 border border-slate-700/60 rounded-xl flex items-center justify-center text-lg">
+            <span>🥩</span><span class="absolute bottom-0.5 right-1 text-[9px] font-black text-amber-400" id="count-meat">0</span>
+        </div>
+    </div>
+
+    <!-- Right Side Controls (Camera Utility, Action Buttons, Joystick) -->
+    <div class="controls-right fixed bottom-4 right-4 z-20 flex flex-col items-end gap-3 pointer-events-none">
+        <!-- Camera Utility Row -->
+        <div class="camera-utility-row flex gap-2 pointer-events-auto">
+            <button id="btn-cam-left" class="w-10 h-10 bg-slate-900/80 backdrop-blur-md border border-slate-700/80 rounded-xl flex items-center justify-center text-slate-200 text-sm active:bg-amber-500 transition touch-action-manipulation">↺</button>
+            <button id="btn-cam-mode" class="px-3 h-10 bg-slate-900/80 backdrop-blur-md border border-slate-700/80 rounded-xl flex items-center justify-center text-[10px] font-bold text-emerald-400 active:scale-95 transition touch-action-manipulation">🔒 FREE</button>
+            <button id="btn-cam-right" class="w-10 h-10 bg-slate-900/80 backdrop-blur-md border border-slate-700/80 rounded-xl flex items-center justify-center text-slate-200 text-sm active:bg-amber-500 transition touch-action-manipulation">↻</button>
+        </div>
+
+        <!-- Action Arc Grid -->
+        <div class="radial-action-arc grid grid-cols-2 gap-2 pointer-events-auto w-44">
+            <button id="btn-attack" class="py-2 px-1 bg-rose-600/90 border border-rose-500/50 rounded-xl text-[10px] font-black tracking-wider text-white shadow-lg active:scale-90 transition touch-action-manipulation">ATTACK ⚔️</button>
+            <button id="btn-skill" class="py-2 px-1 bg-indigo-600/90 border border-indigo-500/50 rounded-xl text-[10px] font-black tracking-wider text-white shadow-lg active:scale-90 transition touch-action-manipulation">SKILL ✨</button>
+            <button id="btn-interact" class="py-2 px-1 bg-amber-600/90 border border-amber-500/50 rounded-xl text-[10px] font-black tracking-wider text-white shadow-lg active:scale-90 transition touch-action-manipulation">INTERACT 🤝</button>
+            <button id="btn-jump" class="py-2 px-1 bg-emerald-600/90 border border-emerald-500/50 rounded-xl text-[10px] font-black tracking-wider text-white shadow-lg active:scale-90 transition touch-action-manipulation">JUMP 🦘</button>
+        </div>
+
+        <!-- Joystick Touch Zone -->
+        <div id="joystick-base" class="relative w-28 h-28 bg-slate-950/60 backdrop-blur-sm border-2 border-slate-700/50 rounded-full flex items-center justify-center shadow-inner pointer-events-auto touch-action-manipulation">
+            <div id="joystick-knob" class="absolute w-12 h-12 bg-amber-500/80 border border-amber-300/80 rounded-full shadow-lg pointer-events-none transition-transform duration-75"></div>
+        </div>
+    </div>
+
+    <!-- 3. INVENTORY & CHARACTER MODAL -->
+    <div id="menu-modal" class="fixed inset-0 z-40 hidden items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 pointer-events-auto">
+        <div class="w-full max-w-xl bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-2xl flex flex-col max-h-[90vh]">
+            <div class="menu-header flex justify-between items-center pb-4 border-b border-slate-800">
+                <h2 class="text-base font-black text-amber-400 tracking-wider">CHARACTER & INVENTORY</h2>
+                <button id="btn-menu-close" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold border border-slate-700 active:scale-95 transition touch-action-manipulation">✕ CLOSE</button>
+            </div>
+            <div class="menu-body grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 overflow-y-auto">
+                <!-- Equipment Panel -->
+                <div class="equipment-panel bg-slate-950/60 p-4 rounded-2xl border border-slate-800/80 flex flex-col items-center justify-center">
+                    <div class="paperdoll-container flex items-center justify-center gap-4">
+                        <div class="equip-column flex flex-col gap-2">
+                            <div class="equip-slot w-12 h-12 bg-slate-900 border border-slate-800 rounded-xl flex flex-col items-center justify-center relative">
+                                <span class="slot-label text-[8px] text-slate-500 font-bold uppercase absolute top-1">MAIN</span>
+                                <span id="equip-weapon-icon" class="text-lg mt-2">👊</span>
+                            </div>
+                            <div class="equip-slot w-12 h-12 bg-slate-900 border border-slate-800 rounded-xl flex flex-col items-center justify-center relative">
+                                <span class="slot-label text-[8px] text-slate-500 font-bold uppercase absolute top-1">HEAD</span>
+                            </div>
+                            <div class="equip-slot w-12 h-12 bg-slate-900 border border-slate-800 rounded-xl flex flex-col items-center justify-center relative">
+                                <span class="slot-label text-[8px] text-slate-500 font-bold uppercase absolute top-1">CHEST</span>
+                            </div>
                         </div>
-                        <button class="craft-btn" id="btn-craft-wall" onclick="craftItem('wall')">CRAFT</button>
+                        
+                        <div class="character-avatar-box flex flex-col items-center justify-center p-3 bg-slate-900/80 border border-slate-800 rounded-2xl text-center min-w-[100px]">
+                            <div class="text-4xl mb-1">🧍</div>
+                            <b id="ui-char-class" class="text-xs text-amber-400 tracking-wide">BRAWLER</b>
+                            <span id="ui-char-gender" class="text-[9px] text-slate-400">Male Adventurer</span>
+                        </div>
+
+                        <div class="equip-column flex flex-col gap-2">
+                            <div class="equip-slot w-12 h-12 bg-slate-900 border border-slate-800 rounded-xl flex flex-col items-center justify-center relative">
+                                <span class="slot-label text-[8px] text-slate-500 font-bold uppercase absolute top-1">OFF</span>
+                            </div>
+                            <div class="equip-slot w-12 h-12 bg-slate-900 border border-slate-800 rounded-xl flex flex-col items-center justify-center relative">
+                                <span class="slot-label text-[8px] text-slate-500 font-bold uppercase absolute top-1">LEGS</span>
+                            </div>
+                            <div class="equip-slot w-12 h-12 bg-slate-900 border border-slate-800 rounded-xl flex flex-col items-center justify-center relative">
+                                <span class="slot-label text-[8px] text-slate-500 font-bold uppercase absolute top-1">FEET</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="tab-content" id="tab-skills" style="display:none; color:#aaa; font-size:10px;" id="ui-skills-text">
-                    --
+
+                <!-- Inventory Panel -->
+                <div class="inventory-panel flex flex-col">
+                    <div class="tab-bar flex gap-1 mb-3 bg-slate-950 p-1 rounded-xl border border-slate-800">
+                        <button class="tab-btn flex-1 py-1.5 text-[10px] font-extrabold rounded-lg bg-amber-500 text-slate-950 transition touch-action-manipulation" id="tab-btn-inv">🎒 Inventory</button>
+                        <button class="tab-btn flex-1 py-1.5 text-[10px] font-extrabold rounded-lg bg-slate-800 text-slate-400 transition touch-action-manipulation" id="tab-btn-craft">🔨 Crafting</button>
+                        <button class="tab-btn flex-1 py-1.5 text-[10px] font-extrabold rounded-lg bg-slate-800 text-slate-400 transition touch-action-manipulation" id="tab-btn-skills">⚡ Spells</button>
+                    </div>
+
+                    <div class="tab-content" id="tab-inv">
+                        <div class="inv-grid-large grid grid-cols-4 gap-2 bg-slate-950/60 p-3 rounded-2xl border border-slate-800/80 min-h-[140px]" id="inventory-grid"></div>
+                    </div>
+
+                    <div class="tab-content hidden" id="tab-craft">
+                        <div class="craft-recipe bg-slate-950/60 p-3 rounded-2xl border border-slate-800/80 flex items-center justify-between">
+                            <div class="craft-recipe-info text-xs">
+                                <b class="text-amber-400">🧱 Wooden Wall</b>
+                                <div class="text-[10px] text-slate-400">Requires: 2 Wood</div>
+                            </div>
+                            <button class="craft-btn px-4 py-2 bg-emerald-600 active:scale-95 text-white font-black text-xs rounded-xl shadow transition touch-action-manipulation" id="btn-craft-wall" onclick="craftItem('wall')">CRAFT</button>
+                        </div>
+                    </div>
+
+                    <div class="tab-content hidden text-slate-500 text-[10px] p-4 text-center" id="tab-skills">
+                        No active spells unlocked.
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <script>
-        function showMobileError(msg) {
-            const logEl = document.getElementById('mobile-log');
-            logEl.style.display = 'block';
-            logEl.innerText += '[ERR] ' + msg + '\n';
-        }
+    <!-- 4. TITLE & CHARACTER CREATION OVERLAYS (Highest Z-Index Layer) -->
+    
+    <!-- Title Screen -->
+    <div id="title-screen" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-950/90 backdrop-blur-md p-6 pointer-events-auto">
+        <div class="text-center max-w-sm space-y-4">
+            <h1 class="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-emerald-400 to-teal-300 tracking-wider">
+                UNEXPLORED ISLE
+            </h1>
+            <p class="text-xs text-slate-400">Survival & Adventure Awaits</p>
+            <button id="btn-show-creation" class="w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-600 active:scale-95 text-slate-950 font-black rounded-2xl shadow-lg shadow-emerald-950/50 transition-all touch-action-manipulation">
+                START GAME
+            </button>
+        </div>
+    </div>
 
-        window.onerror = function(msg, url, lineNo) {
-            showMobileError(msg + " (line " + lineNo + ")");
-            return false;
-        };
-
-        // --- GAME STATE ---
-        let playerGender = 'MALE';
-        let playerClass = 'BRAWLER';
-
-        function selectGender(g) {
-            playerGender = g;
-            document.getElementById('btn-g-m').classList.toggle('active', g === 'MALE');
-            document.getElementById('btn-g-f').classList.toggle('active', g === 'FEMALE');
-        }
-
-        function selectClass(c) {
-            playerClass = c;
-            document.getElementById('btn-c-brawler').classList.toggle('active', c === 'BRAWLER');
-            document.getElementById('btn-c-hunter').classList.toggle('active', c === 'HUNTER');
-            document.getElementById('btn-c-mage').classList.toggle('active', c === 'MAGE');
-
-            const desc = document.getElementById('class-desc');
-            if (c === 'BRAWLER') desc.innerText = "Brawlers focus on raw power and close-range striking force.";
-            else if (c === 'HUNTER') desc.innerText = "Hunters use bows at range and lay bear traps to immobilize foes.";
-            else if (c === 'MAGE') desc.innerText = "Mages channel offensive elemental magic through staves and wands.";
-        }
-
-        function showCharacterCreation() {
-            document.getElementById('title-screen').style.display = 'none';
-            document.getElementById('creation-screen').style.display = 'flex';
-        }
-
-        function startGame() {
-            document.getElementById('creation-screen').style.display = 'none';
-            initGameEngine();
-        }
-
-        // --- MAIN ENGINE ---
-        function initGameEngine() {
-            const container = document.getElementById('canvas-container');
-            let currentEnergy = 100;
-            let currentHP = 100;
-            const inventory = { wood: 0, stone: 0, meat: 0, hatchet: 0, knife: 0 };
-
-            document.getElementById('ui-char-class').innerText = playerClass;
-            document.getElementById('ui-char-gender').innerText = playerGender + ' Adventurer';
-
-            let attackIcon = '👊';
-            if (playerClass === 'HUNTER') attackIcon = '🏹';
-            if (playerClass === 'MAGE') attackIcon = '🪄';
-            document.getElementById('equip-weapon-icon').innerText = attackIcon;
-
-            function updateUI() {
-                document.getElementById('bar-energy').style.width = currentEnergy + '%';
-                document.getElementById('bar-hp').style.width = currentHP + '%';
-                document.getElementById('count-wood').innerText = inventory.wood;
-                document.getElementById('count-stone').innerText = inventory.stone;
-                document.getElementById('count-meat').innerText = inventory.meat;
-                document.getElementById('count-hatchet').innerText = inventory.hatchet;
-                document.getElementById('count-knife').innerText = inventory.knife;
-
-                const invGrid = document.getElementById('inventory-grid');
-                if (invGrid) {
-                    invGrid.innerHTML = '';
-                    const items = [
-                        { icon: '🪓', count: inventory.hatchet },
-                        { icon: '🔪', count: inventory.knife },
-                        { icon: '🪵', count: inventory.wood },
-                        { icon: '🪨', count: inventory.stone },
-                        { icon: '🥩', count: inventory.meat }
-                    ];
-                    items.forEach(item => {
-                        if (item.count > 0) {
-                            const slot = document.createElement('div');
-                            slot.className = 'inv-item-slot';
-                            slot.innerHTML = `<span>${item.icon}</span><span class="qty">${item.count}</span>`;
-                            invGrid.appendChild(slot);
-                        }
-                    });
-                }
-            }
-
-            window.switchTab = function(tabName) {
-                document.getElementById('tab-inv').style.display = (tabName === 'inv') ? 'block' : 'none';
-                document.getElementById('tab-craft').style.display = (tabName === 'craft') ? 'block' : 'none';
-                document.getElementById('tab-skills').style.display = (tabName === 'skills') ? 'block' : 'none';
-
-                document.getElementById('tab-btn-inv').classList.toggle('active', tabName === 'inv');
-                document.getElementById('tab-btn-craft').classList.toggle('active', tabName === 'craft');
-                document.getElementById('tab-btn-skills').classList.toggle('active', tabName === 'skills');
-            };
-
-            // --- 3D Scene & World Generation ---
-            const scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x87ceeb);
-            scene.fog = new THREE.FogExp2(0x87ceeb, 0.012);
-
-            const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
+    <!-- Character Creation Screen -->
+    <div id="creation-screen" class="fixed inset-0 z-50 hidden flex-col items-center justify-center bg-slate-950/95 backdrop-blur-md p-6 pointer-events-auto">
+        <div class="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl text-slate-100 space-y-5">
+            <h2 class="text-xl font-black text-center text-amber-400 tracking-wider">CREATE YOUR HERO</h2>
             
-            const renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            container.appendChild(renderer.domElement);
-
-            scene.add(new THREE.AmbientLight(0xffffff, 0.75));
-            const sunLight = new THREE.DirectionalLight(0xfffaed, 0.9);
-            sunLight.position.set(30, 60, 20);
-            scene.add(sunLight);
-
-            // Terrain Generation: Beach -> Forest -> Mountains
-            const WORLD_SIZE = 140;
-            function getTerrainHeight(x, z) {
-                // Ocean / Beach shore line at Z > 30
-                if (z > 35) return -0.5; // Water height
-                let height = 0;
-                if (z > 20) {
-                    // Sandy beach shore
-                    height = (35 - z) * 0.1;
-                } else if (z < -30) {
-                    // Mountain range in the background
-                    height = Math.abs(z + 30) * 0.6 + Math.sin(x * 0.2) * 4.0;
-                } else {
-                    // Coastal Forest hills
-                    height = Math.sin(x * 0.08) * Math.cos(z * 0.08) * 2.5 + 1.0;
-                }
-                return height;
-            }
-
-            const groundGeo = new THREE.PlaneGeometry(WORLD_SIZE, WORLD_SIZE, 50, 50);
-            groundGeo.rotateX(-Math.PI / 2);
-            const pos = groundGeo.attributes.position;
-            const colors = [];
-
-            for (let i = 0; i < pos.count; i++) {
-                const x = pos.getX(i);
-                const z = pos.getZ(i);
-                const y = getTerrainHeight(x, z);
-                pos.setY(i, y);
-
-                // Procedural Terrain Colors (Sand, Grass, Rock)
-                if (z > 20) {
-                    colors.push(0.9, 0.85, 0.55); // Sand
-                } else if (z < -30) {
-                    colors.push(0.5, 0.5, 0.55);  // Mountain Rock
-                } else {
-                    colors.push(0.28, 0.52, 0.28); // Forest Grass
-                }
-            }
-            groundGeo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-            groundGeo.computeVertexNormals();
-
-            const groundMesh = new THREE.Mesh(
-                groundGeo, 
-                new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true })
-            );
-            scene.add(groundMesh);
-
-            // Ocean Water Plane
-            const waterMesh = new THREE.Mesh(
-                new THREE.PlaneGeometry(WORLD_SIZE, 40),
-                new THREE.MeshStandardMaterial({ color: 0x1e90ff, transparent: true, opacity: 0.7 })
-            );
-            waterMesh.rotateX(-Math.PI / 2);
-            waterMesh.position.set(0, -0.2, 45);
-            scene.add(waterMesh);
-
-            // --- Player Character ---
-            const playerGroup = new THREE.Group();
-            const PLAYER_RADIUS = 0.5;
-
-            const bodyColor = (playerGender === 'MALE') ? 0x2266cc : 0xcc22aa;
-            const bodyMesh = new THREE.Mesh(
-                new THREE.BoxGeometry(0.7, 1.2, 0.5),
-                new THREE.MeshStandardMaterial({ color: bodyColor, flatShading: true })
-            );
-            bodyMesh.position.y = 0.9;
-            playerGroup.add(bodyMesh);
-
-            const headMesh = new THREE.Mesh(
-                new THREE.BoxGeometry(0.5, 0.5, 0.5),
-                new THREE.MeshStandardMaterial({ color: 0xffcc99, flatShading: true })
-            );
-            headMesh.position.y = 1.75;
-            playerGroup.add(headMesh);
-
-            // Start player on the Beach shore
-            playerGroup.position.set(0, getTerrainHeight(0, 28), 28);
-            scene.add(playerGroup);
-
-            let playerVY = 0;
-            let isGrounded = true;
-
-            const targetRing = new THREE.Mesh(
-                new THREE.RingGeometry(0.8, 1.0, 16),
-                new THREE.MeshBasicMaterial({ color: 0x00ffcc, side: THREE.DoubleSide })
-            );
-            targetRing.rotation.x = -Math.PI / 2;
-            targetRing.visible = false;
-            scene.add(targetRing);
-
-            // --- Shipwreck & Wreckage Chest ---
-            const boatGroup = new THREE.Group();
-            const hull = new THREE.Mesh(
-                new THREE.BoxGeometry(3.5, 1.2, 7.0),
-                new THREE.MeshStandardMaterial({ color: 0x4a2e18, flatShading: true })
-            );
-            hull.rotation.z = 0.3;
-            hull.rotation.y = 0.4;
-            boatGroup.add(hull);
-            boatGroup.position.set(6, getTerrainHeight(6, 30) + 0.4, 30);
-            scene.add(boatGroup);
-
-            // Treasure Chest
-            let chestLooted = false;
-            const chestMesh = new THREE.Mesh(
-                new THREE.BoxGeometry(1.0, 0.8, 0.8),
-                new THREE.MeshStandardMaterial({ color: 0xffaa00, flatShading: true })
-            );
-            chestMesh.position.set(3.5, getTerrainHeight(3.5, 28) + 0.4, 28);
-            scene.add(chestMesh);
-
-            // --- Environmental Objects & Structures ---
-            const harvestables = [];
-            const obstacleColliders = [];
-
-            // Add Chest to interactables
-            const chestData = { isChest: true, mesh: chestMesh, x: 3.5, z: 28, radius: 0.8 };
-            harvestables.push(chestData);
-            obstacleColliders.push(chestData);
-
-            function spawnProp(type, x, z) {
-                const g = new THREE.Group();
-                let dropType = 'wood';
-                let propRadius = 0.8;
-
-                if (type === 'tree') {
-                    const trunk = new THREE.Mesh(
-                        new THREE.CylinderGeometry(0.4, 0.6, 3.5), 
-                        new THREE.MeshStandardMaterial({ color: 0x5a3d28, flatShading: true })
-                    );
-                    trunk.position.y = 1.75;
-                    const foliage = new THREE.Mesh(
-                        new THREE.ConeGeometry(2.2, 5.0, 6), 
-                        new THREE.MeshStandardMaterial({ color: 0x2e8b57, flatShading: true })
-                    );
-                    foliage.position.y = 5.0;
-                    g.add(trunk, foliage);
-                    dropType = 'wood';
-                    propRadius = 1.0;
-                } else if (type === 'stone') {
-                    const rock = new THREE.Mesh(
-                        new THREE.DodecahedronGeometry(1.2, 1), 
-                        new THREE.MeshStandardMaterial({ color: 0x778899, flatShading: true })
-                    );
-                    rock.position.y = 0.8;
-                    g.add(rock);
-                    dropType = 'stone';
-                    propRadius = 1.1;
-                }
-
-                const groundY = getTerrainHeight(x, z);
-                g.position.set(x, groundY, z);
-                scene.add(g);
-
-                const itemData = { isCreature: false, mesh: g, dropType, hp: 3, x, z, radius: propRadius };
-                harvestables.push(itemData);
-                obstacleColliders.push(itemData);
-            }
-
-            // Populate Forest inland
-            for (let i = 0; i < 40; i++) {
-                const rx = (Math.random() - 0.5) * 80;
-                const rz = (Math.random() * -40) + 10; // Inland forest
-                const r = Math.random();
-                if (r < 0.6) spawnProp('tree', rx, rz);
-                else spawnProp('stone', rx, rz);
-            }
-
-            // --- AUTONOMOUS CREATURE ENGINE ---
-            const creatures = [];
-            const projectiles = [];
-            const traps = [];
-
-            class AutonomousCreature {
-                constructor(template) {
-                    this.isCreature = true;
-                    this.name = template.name;
-                    this.temperament = template.temperament;
-                    this.type = template.type;
-                    this.element = template.element;
-                    
-                    this.hp = template.hp;
-                    this.maxHp = template.hp;
-                    this.state = 'IDLE';
-
-                    this.radius = template.radius || 0.9;
-                    this.speed = template.speed || 2.5;
-
-                    this.x = template.x;
-                    this.z = template.z;
-
-                    // AI Pathing / Autonomous Movement Variables
-                    this.targetX = this.x;
-                    this.targetZ = this.z;
-                    this.changeTargetTimer = 0;
-                    this.rootedTimer = 0;
-
-                    this.group = new THREE.Group();
-                    const cBody = new THREE.Mesh(
-                        new THREE.BoxGeometry(1.0, 0.9, 1.4),
-                        new THREE.MeshStandardMaterial({ color: template.color || 0xcc4444, flatShading: true })
-                    );
-                    cBody.position.y = 0.5;
-                    this.group.add(cBody);
-
-                    const gY = getTerrainHeight(this.x, this.z);
-                    this.group.position.set(this.x, gY, this.z);
-                    scene.add(this.group);
-
-                    this.mesh = this.group;
-                }
-
-                takeDamage(amt) {
-                    this.hp -= amt;
-                    if (this.hp <= (this.maxHp * 0.1)) this.state = 'SUBMITTED';
-                    else if (this.temperament !== 'DOCILE') this.state = 'HOSTILE';
-                    else this.state = 'FLEEING';
-                }
-
-                getConditionText() {
-                    if (this.state === 'SUBMITTED') return 'Condition: Submissive';
-                    const ratio = this.hp / this.maxHp;
-                    if (ratio > 0.7) return 'Condition: Healthy';
-                    if (ratio > 0.3) return 'Condition: Injured';
-                    return 'Condition: Critical';
-                }
-
-                update(delta, playerPos) {
-                    if (this.hp <= 0) return;
-
-                    if (this.rootedTimer > 0) {
-                        this.rootedTimer -= delta;
-                        return; // Trapped, cannot move
-                    }
-
-                    this.x = this.group.position.x;
-                    this.z = this.group.position.z;
-
-                    const distToPlayer = Math.hypot(playerPos.x - this.x, playerPos.z - this.z);
-
-                    if (this.state === 'HOSTILE') {
-                        this.targetX = playerPos.x;
-                        this.targetZ = playerPos.z;
-                    } else if (this.state === 'FLEEING') {
-                        this.targetX = this.x + (this.x - playerPos.x);
-                        this.targetZ = this.z + (this.z - playerPos.z);
-                    } else if (this.state === 'IDLE') {
-                        // Pick random autonomous roaming point
-                        this.changeTargetTimer -= delta;
-                        if (this.changeTargetTimer <= 0) {
-                            this.targetX = this.x + (Math.random() - 0.5) * 20;
-                            this.targetZ = this.z + (Math.random() - 0.5) * 20;
-                            this.changeTargetTimer = 4 + Math.random() * 5;
-                        }
-                    }
-
-                    // Move toward target path point
-                    const dx = this.targetX - this.x;
-                    const dz = this.targetZ - this.z;
-                    const distToTarget = Math.hypot(dx, dz);
-
-                    if (distToTarget > 0.5 && this.state !== 'SUBMITTED') {
-                        const angle = Math.atan2(dx, dz);
-                        const moveX = this.x + Math.sin(angle) * this.speed * delta;
-                        const moveZ = this.z + Math.cos(angle) * this.speed * delta;
-
-                        // Obstacle Collision Avoidance
-                        let blocked = false;
-                        for (let obs of obstacleColliders) {
-                            if (obs !== this && Math.hypot(moveX - obs.x, moveZ - obs.z) < (this.radius + obs.radius)) {
-                                blocked = true;
-                                this.changeTargetTimer = 0; // Pick new target if blocked
-                                break;
-                            }
-                        }
-
-                        if (!blocked) {
-                            this.group.position.x = moveX;
-                            this.group.position.z = moveZ;
-                            this.group.rotation.y = angle;
-                        }
-                    }
-
-                    this.group.position.y = getTerrainHeight(this.group.position.x, this.group.position.z);
-                }
-            }
-
-            // Spawn Initial Autonomous Creatures in Forest
-            const boar = new AutonomousCreature({ name: 'Forest Boar', temperament: 'WARY', type: 'STRIKING', element: 'EARTH', hp: 25, x: -10, z: -5 });
-            const stag = new AutonomousCreature({ name: 'Meadow Stag', temperament: 'DOCILE', type: 'SPECIAL', element: 'WIND', hp: 15, x: 12, z: 0 });
-            creatures.push(boar, stag);
-            harvestables.push(boar, stag);
-            obstacleColliders.push(boar, stag);
-
-            // --- CLASS ATTACK & SKILL HANDLERS ---
-            const attackBtn = document.getElementById('btn-attack');
-            const skillBtn = document.getElementById('btn-skill');
-
-            function performPrimaryAttack() {
-                if (playerClass === 'BRAWLER') {
-                    // Melee Strike
-                    for (let h of harvestables) {
-                        if (Math.hypot(playerGroup.position.x - h.x, playerGroup.position.z - h.z) < 2.2) {
-                            if (h.isCreature) h.takeDamage(8);
-                            else h.hp--;
-                            break;
-                        }
-                    }
-                } else if (playerClass === 'HUNTER' || playerClass === 'MAGE') {
-                    // Spawn Ranged Projectile
-                    const pGeo = (playerClass === 'MAGE') ? new THREE.SphereGeometry(0.3) : new THREE.CylinderGeometry(0.05, 0.05, 0.8);
-                    const pMat = new THREE.MeshBasicMaterial({ color: (playerClass === 'MAGE') ? 0x00ffff : 0xffaa00 });
-                    const proj = new THREE.Mesh(pGeo, pMat);
-
-                    proj.position.copy(playerGroup.position);
-                    proj.position.y += 1.2;
-                    proj.rotation.y = playerGroup.rotation.y;
-                    scene.add(proj);
-
-                    projectiles.push({
-                        mesh: proj,
-                        dirX: Math.sin(playerGroup.rotation.y),
-                        dirZ: Math.cos(playerGroup.rotation.y),
-                        speed: 18.0,
-                        life: 1.5,
-                        damage: 6
-                    });
-                }
-            }
-
-            function performClassSkill() {
-                if (playerClass === 'HUNTER') {
-                    // Lay Bear Trap
-                    const trapMesh = new THREE.Mesh(
-                        new THREE.CylinderGeometry(0.6, 0.6, 0.1),
-                        new THREE.MeshStandardMaterial({ color: 0x333333 })
-                    );
-                    trapMesh.position.set(playerGroup.position.x, getTerrainHeight(playerGroup.position.x, playerGroup.position.z) + 0.05, playerGroup.position.z);
-                    scene.add(trapMesh);
-                    traps.push({ mesh: trapMesh, x: playerGroup.position.x, z: playerGroup.position.z });
-                } else if (playerClass === 'MAGE') {
-                    // Spell 2: Area Blast
-                    const blast = new THREE.Mesh(
-                        new THREE.RingGeometry(0.5, 3.5, 16),
-                        new THREE.MeshBasicMaterial({ color: 0xff00ff, side: THREE.DoubleSide })
-                    );
-                    blast.rotation.x = -Math.PI / 2;
-                    blast.position.set(playerGroup.position.x, getTerrainHeight(playerGroup.position.x, playerGroup.position.z) + 0.1, playerGroup.position.z);
-                    scene.add(blast);
-
-                    setTimeout(() => scene.remove(blast), 400);
-
-                    creatures.forEach(c => {
-                        if (Math.hypot(playerGroup.position.x - c.x, playerGroup.position.z - c.z) < 3.8) {
-                            c.takeDamage(12);
-                        }
-                    });
-                }
-            }
-
-            attackBtn.onclick = performPrimaryAttack;
-            skillBtn.onclick = performClassSkill;
-
-            // Chest & Harvesting Interactions
-            document.getElementById('btn-interact').onclick = () => {
-                if (!chestLooted && Math.hypot(playerGroup.position.x - chestData.x, playerGroup.position.z - chestData.z) < 2.5) {
-                    chestLooted = true;
-                    inventory.hatchet += 1;
-                    inventory.knife += 1;
-                    updateUI();
-                    scene.remove(chestMesh);
-                }
-            };
-
-            document.getElementById('btn-jump').onclick = () => {
-                if (isGrounded) { playerVY = 0.24; isGrounded = false; }
-            };
-
-            // Joystick Logic
-            let joystickVector = { x: 0, y: 0 };
-            const baseEl = document.getElementById('joystick-base');
-            const knobEl = document.getElementById('joystick-knob');
-
-            function handleJoystick(e) {
-                const rect = baseEl.getBoundingClientRect();
-                const touch = e.touches ? e.touches[0] : e;
-                let dx = touch.clientX - (rect.left + rect.width / 2);
-                let dy = touch.clientY - (rect.top + rect.height / 2);
-                const dist = Math.hypot(dx, dy);
-                const maxR = 40;
-
-                if (dist > maxR) { dx = (dx / dist) * maxR; dy = (dy / dist) * maxR; }
-                knobEl.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
-                joystickVector = dist < 5 ? { x: 0, y: 0 } : { x: dx / maxR, y: dy / maxR };
-            }
-
-            function resetJoystick() {
-                knobEl.style.transform = `translate(-50%, -50%)`;
-                joystickVector = { x: 0, y: 0 };
-            }
-
-            baseEl.addEventListener('pointerdown', (e) => { baseEl.setPointerCapture(e.pointerId); handleJoystick(e); });
-            baseEl.addEventListener('pointermove', (e) => { if (baseEl.hasPointerCapture(e.pointerId)) handleJoystick(e); });
-            baseEl.addEventListener('pointerup', (e) => { baseEl.releasePointerCapture(e.pointerId); resetJoystick(); });
-
-            // Camera Controls
-            let isAutoCam = false;
-            let cameraAngle = 0;
-            let camRotInput = 0;
-
-            const camModeBtn = document.getElementById('btn-cam-mode');
-            camModeBtn.onclick = () => {
-                isAutoCam = !isAutoCam;
-                camModeBtn.innerText = isAutoCam ? '🎥 AUTO' : '🔒 FREE';
-                camModeBtn.style.background = isAutoCam ? '#ffaa00' : 'rgba(0, 255, 204, 0.85)';
-            };
-
-            function bindCam(id, val) {
-                const b = document.getElementById(id);
-                b.addEventListener('pointerdown', () => camRotInput = val);
-                b.addEventListener('pointerup', () => camRotInput = 0);
-            }
-            bindCam('btn-cam-left', -1);
-            bindCam('btn-cam-right', 1);
-
-            // Modal Handlers
-            const menuModal = document.getElementById('menu-modal');
-            document.getElementById('btn-menu-open').onclick = () => { updateUI(); menuModal.style.display = 'flex'; };
-            document.getElementById('btn-menu-close').onclick = () => { menuModal.style.display = 'none'; };
-
-            updateUI();
-
-            function canMoveTo(nextX, nextZ) {
-                const halfBoundary = (WORLD_SIZE / 2) - 1.5;
-                if (Math.abs(nextX) > halfBoundary || Math.abs(nextZ) > halfBoundary) return false;
-
-                for (let obj of obstacleColliders) {
-                    if (Math.hypot(nextX - obj.x, nextZ - obj.z) < (PLAYER_RADIUS + obj.radius)) return false;
-                }
-                return true;
-            }
-
-            // --- Main Game Loop ---
-            const clock = new THREE.Clock();
-            const CAM_DISTANCE = 8.0;
-            const CAM_HEIGHT = 3.5;
-
-            function animate() {
-                requestAnimationFrame(animate);
-                const delta = clock.getDelta();
-
-                if (camRotInput !== 0) cameraAngle += camRotInput * 2.2 * delta;
-
-                const jx = joystickVector.x;
-                const jy = joystickVector.y;
-
-                if (Math.abs(jx) > 0.05 || Math.abs(jy) > 0.05) {
-                    const moveSpeed = 7.5;
-                    const dx = (jx * Math.cos(cameraAngle) + jy * Math.sin(cameraAngle)) * moveSpeed * delta;
-                    const dz = (-jx * Math.sin(cameraAngle) + jy * Math.cos(cameraAngle)) * moveSpeed * delta;
-
-                    const nextX = playerGroup.position.x + dx;
-                    const nextZ = playerGroup.position.z + dz;
-
-                    if (canMoveTo(nextX, playerGroup.position.z)) playerGroup.position.x = nextX;
-                    if (canMoveTo(playerGroup.position.x, nextZ)) playerGroup.position.z = nextZ;
-
-                    const targetAngle = Math.atan2(dx, dz);
-                    playerGroup.rotation.y = targetAngle;
-                }
-
-                const groundY = getTerrainHeight(playerGroup.position.x, playerGroup.position.z);
-                if (isGrounded) {
-                    playerGroup.position.y = groundY;
-                } else {
-                    playerGroup.position.y += playerVY;
-                    playerVY -= 0.8 * delta;
-                    if (playerGroup.position.y <= groundY) {
-                        playerGroup.position.y = groundY;
-                        playerVY = 0;
-                        isGrounded = true;
-                    }
-                }
-
-                // Update Creatures
-                creatures.forEach(c => c.update(delta, playerGroup.position));
-
-                // Projectiles Update
-                for (let i = projectiles.length - 1; i >= 0; i--) {
-                    const p = projectiles[i];
-                    p.life -= delta;
-                    p.mesh.position.x += p.dirX * p.speed * delta;
-                    p.mesh.position.z += p.dirZ * p.speed * delta;
-
-                    for (let c of creatures) {
-                        if (Math.hypot(p.mesh.position.x - c.x, p.mesh.position.z - c.z) < 1.2) {
-                            c.takeDamage(p.damage);
-                            p.life = 0;
-                            break;
-                        }
-                    }
-
-                    if (p.life <= 0) {
-                        scene.remove(p.mesh);
-                        projectiles.splice(i, 1);
-                    }
-                }
-
-                // Bear Traps Update
-                for (let i = traps.length - 1; i >= 0; i--) {
-                    const t = traps[i];
-                    for (let c of creatures) {
-                        if (Math.hypot(t.x - c.x, t.z - c.z) < 1.0) {
-                            c.rootedTimer = 4.0; // Root for 4s
-                            c.takeDamage(5);
-                            scene.remove(t.mesh);
-                            traps.splice(i, 1);
-                            break;
-                        }
-                    }
-                }
-
-                // Target HUD Overlay (Hidden Stats Facet)
-                let closest = null;
-                let minDist = 3.5;
-                harvestables.forEach(h => {
-                    const d = Math.hypot(playerGroup.position.x - h.x, playerGroup.position.z - h.z);
-                    if (d < minDist) { minDist = d; closest = h; }
+            <!-- Gender Selection -->
+            <div class="space-y-2">
+                <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Select Gender</span>
+                <div class="grid grid-cols-2 gap-3">
+                    <button id="btn-g-m" class="py-3 bg-amber-500 text-slate-950 border border-amber-400 rounded-xl text-xs font-black transition touch-action-manipulation">Male</button>
+                    <button id="btn-g-f" class="py-3 bg-slate-800 text-slate-300 border border-slate-700 rounded-xl text-xs font-black transition touch-action-manipulation">Female</button>
+                </div>
+            </div>
+
+            <!-- Class Selection -->
+            <div class="space-y-2">
+                <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Select Class</span>
+                <div class="grid grid-cols-3 gap-2">
+                    <button id="btn-c-brawler" class="py-3 bg-amber-500 text-slate-950 border border-amber-400 rounded-xl text-[10px] font-black transition touch-action-manipulation">Brawler</button>
+                    <button id="btn-c-hunter" class="py-3 bg-slate-800 text-slate-300 border border-slate-700 rounded-xl text-[10px] font-black transition touch-action-manipulation">Hunter</button>
+                    <button id="btn-c-mage" class="py-3 bg-slate-800 text-slate-300 border border-slate-700 rounded-xl text-[10px] font-black transition touch-action-manipulation">Mage</button>
+                </div>
+            </div>
+
+            <!-- Class Description -->
+            <div class="p-3 bg-slate-950/80 border border-slate-800 rounded-xl min-h-[50px] flex items-center">
+                <p id="class-desc" class="text-[11px] text-slate-300 leading-snug">
+                    Brawlers focus on raw power and close-range striking force.
+                </p>
+            </div>
+
+            <!-- Begin Adventure Button -->
+            <button id="btn-start-game" class="w-full py-4 bg-gradient-to-r from-amber-500 to-amber-600 active:scale-95 text-slate-950 font-black rounded-2xl shadow-lg shadow-amber-950/50 transition-all touch-action-manipulation">
+                BEGIN ADVENTURE
+            </button>
+        </div>
+    </div>
+
+    <!-- 5. JAVASCRIPT BINDINGS -->
+    <script>
+        // Direct event listener attachments to guarantee mobile tap handling
+        document.addEventListener("DOMContentLoaded", () => {
+            // Screen Transitions
+            const titleBtn = document.getElementById('btn-show-creation');
+            if (titleBtn) {
+                titleBtn.addEventListener('pointerdown', (e) => {
+                    e.preventDefault();
+                    showCharacterCreation();
                 });
-
-                const targetOverlay = document.getElementById('target-info-overlay');
-                if (closest) {
-                    targetRing.position.set(closest.x, getTerrainHeight(closest.x, closest.z) + 0.1, closest.z);
-                    targetRing.visible = true;
-
-                    if (closest.isCreature) {
-                        targetOverlay.style.display = 'block';
-                        document.getElementById('target-name-lbl').innerText = closest.name;
-                        document.getElementById('target-status-lbl').innerText = closest.getConditionText();
-                    } else {
-                        targetOverlay.style.display = 'none';
-                    }
-                } else {
-                    targetRing.visible = false;
-                    targetOverlay.style.display = 'none';
-                }
-
-                // Camera Position
-                camera.position.x = playerGroup.position.x + Math.sin(cameraAngle) * CAM_DISTANCE;
-                camera.position.z = playerGroup.position.z + Math.cos(cameraAngle) * CAM_DISTANCE;
-                camera.position.y = playerGroup.position.y + CAM_HEIGHT;
-                camera.lookAt(playerGroup.position.x, playerGroup.position.y + 1.2, playerGroup.position.z);
-
-                renderer.render(scene, camera);
             }
 
-            animate();
+            const startBtn = document.getElementById('btn-start-game');
+            if (startBtn) {
+                startBtn.addEventListener('pointerdown', (e) => {
+                    e.preventDefault();
+                    startGame();
+                });
+            }
 
-            window.addEventListener('resize', () => {
-                camera.aspect = window.innerWidth / window.innerHeight;
-                camera.updateProjectionMatrix();
-                renderer.setSize(window.innerWidth, window.innerHeight);
-            });
-        }
+            // Gender Selectors
+            document.getElementById('btn-g-m')?.addEventListener('pointerdown', (e) => { e.preventDefault(); selectGender('MALE'); });
+            document.getElementById('btn-g-f')?.addEventListener('pointerdown', (e) => { e.preventDefault(); selectGender('FEMALE'); });
+
+            // Class Selectors
+            document.getElementById('btn-c-brawler')?.addEventListener('pointerdown', (e) => { e.preventDefault(); selectClass('BRAWLER'); });
+            document.getElementById('btn-c-hunter')?.addEventListener('pointerdown', (e) => { e.preventDefault(); selectClass('HUNTER'); });
+            document.getElementById('btn-c-mage')?.addEventListener('pointerdown', (e) => { e.preventDefault(); selectClass('MAGE'); });
+
+            // Tab Switchers inside Inventory Modal
+            document.getElementById('tab-btn-inv')?.addEventListener('pointerdown', (e) => { e.preventDefault(); switchTab('inv'); });
+            document.getElementById('tab-btn-craft')?.addEventListener('pointerdown', (e) => { e.preventDefault(); switchTab('craft'); });
+            document.getElementById('tab-btn-skills')?.addEventListener('pointerdown', (e) => { e.preventDefault(); switchTab('skills'); });
+        });
     </script>
+    <script src="game.js"></script>
 </body>
 </html>

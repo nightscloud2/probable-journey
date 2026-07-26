@@ -1,6 +1,8 @@
 // =========================================================================
-// [SECTION 0: ERROR HANDLING & LOGGING]
+// [SECTION 0: ERROR HANDLING, LOGGING & VERSIONING]
 // =========================================================================
+const GAME_VERSION = "v0.0.2";
+
 function showMobileError(msg) {
     const logEl = document.getElementById('mobile-log');
     if (logEl) {
@@ -13,6 +15,39 @@ window.onerror = function(msg, url, lineNo) {
     showMobileError(msg + " (line " + lineNo + ")");
     return false;
 };
+
+// Fail-safe button binding & version injection once DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    // Inject version number everywhere requested
+    document.querySelectorAll('.game-version').forEach(el => {
+        el.innerText = GAME_VERSION;
+    });
+
+    // Double-bind start/creation buttons so taps never fail
+    const titleStartBtn = document.getElementById('btn-title-start') || document.getElementById('btn-start');
+    if (titleStartBtn) {
+        titleStartBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            window.showCharacterCreation();
+        });
+        titleStartBtn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            window.showCharacterCreation();
+        });
+    }
+
+    const creationStartBtn = document.getElementById('btn-create-start') || document.getElementById('btn-start-game');
+    if (creationStartBtn) {
+        creationStartBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            window.startGame();
+        });
+        creationStartBtn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            window.startGame();
+        });
+    }
+});
 
 // =========================================================================
 // [SECTION 1: UI STATE & SELECTION HANDLERS]
@@ -41,16 +76,26 @@ window.selectClass = function(c) {
 };
 
 window.showCharacterCreation = function() {
-    const title = document.getElementById('title-screen');
-    const creation = document.getElementById('creation-screen');
-    if (title) title.style.display = 'none';
-    if (creation) creation.style.display = 'flex';
+    try {
+        const title = document.getElementById('title-screen');
+        const creation = document.getElementById('creation-screen');
+        if (title) title.style.display = 'none';
+        if (creation) creation.style.display = 'flex';
+    } catch(err) {
+        showMobileError("showCharacterCreation: " + err.message);
+    }
 };
 
 window.startGame = function() {
-    const creation = document.getElementById('creation-screen');
-    if (creation) creation.style.display = 'none';
-    initGameEngine();
+    try {
+        const title = document.getElementById('title-screen');
+        const creation = document.getElementById('creation-screen');
+        if (title) title.style.display = 'none';
+        if (creation) creation.style.display = 'none';
+        initGameEngine();
+    } catch(err) {
+        showMobileError("startGame: " + err.message);
+    }
 };
 
 // =========================================================================

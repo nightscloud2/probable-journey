@@ -677,6 +677,152 @@ function initGameEngine() {
                 projectiles.splice(i, 1);
             }
         }
+// =========================================================================
+    // [SECTION 9: CAMERA SYSTEM (SWIPE & AUTO-ALIGN)]
+    // =========================================================================
+    let cameraAngle = 0;
+    let isSwipingCamera = false;
+    let activePointerId = null;
+    let lastTouchX = 0;
+    
+    // Auto-camera tracking variables
+    let timeSinceLastManualCam = 100; // Starts high so it can align immediately
+    let continuousMoveTime = 0;
+
+    window.addEventListener('pointerdown', (e) => {
+        // Ignore touches on UI overlays or buttons
+        if (e.target.closest('button') || e.target.closest('#menu-modal') || e.target.closest('#joystick-base') || e.target.closest('.ui-layer')) return;
+        
+        isSwipingCamera = true;
+        activePointerId = e.pointerId;
+        lastTouchX = e.clientX;
+    });
+
+    window.addEventListener('pointermove', (e) => {
+        if (isSwipingCamera && e.pointerId === activePointerId) {
+            const deltaX = e.clientX - lastTouchX;
+            cameraAngle -= deltaX * 0.005; // Manual orbit speed
+            lastTouchX = e.clientX;
+            timeSinceLastManualCam = 0; // Reset the manual override timer!
+        }
+    });
+
+    const stopSwipe = (e) => {
+        if (e.pointerId === activePointerId) {
+            isSwipingCamera = false;
+            activePointerId = null;
+        }
+    };
+
+    window.addEventListener('pointerup', stopSwipe);
+    window.addEventListener('pointercancel', stopSwipe);
+
+    updateUI();
+
+    function canMoveTo(nextX, nextZ) {
+        const halfBoundary = (WORLD_SIZE / 2) - 1.5;
+        if (Math.abs(nextX) > halfBoundary || Math.abs(nextZ) > halfBoundary) return false;
+
+        for (let obj of obstacleColliders) {
+            if (Math.hypot(nextX - obj.x, nextZ - obj.z) < (PLAYER_RADIUS + obj.radius)) return false;
+        }
+        return true;
+    }
+
+    // =========================================================================
+    // [SECTION 10: MAIN ANIMATION & GAME LOOP]
+    // =========================================================================
+    const clock = new THREE.Clock();
+
+    function animate() {
+        requestAnimationFrame(animate);
+        const delta = clock.getDelta();
+
+        const jx = joystickVector.x;
+        const jy = joystickVector.y;
+
+        // Track camera timers for auto-align
+        if (!isSwipingCamera) {
+            timeSinceLastManualCam += delta;
+        }
+
+        // Check if pushing UP on joystick (jy is negative when pushing up)
+        let isMovingForward = jy < -0.3;
+        if (isMovingForward) {
+            continuousMoveTime += delta;
+        } else {
+            continuousMoveTime = 0; // Reset if they stop or run backwards
+        }
+
+        if (Math.abs(jx) > 0.05 || Math.abs(jy) > 0.05) {
+            const moveSpeed = 7.5;
+
+            // Calculate movement direction relative to camera angle
+            const dx = (jx * Math.cos(cameraAngle) + jy * Math.sin(cameraAngle)) * moveSpeed * delta;
+            const dz = (-jx * Math.sin(cameraAngle) + jy * Math.cos(cameraAngle)) * moveSpeed * delta;
+
+            const nextX = playerGroup.position.x + dx;
+            const nextZ = playerGroup.position.z + dz;
+
+            if (canMoveTo(nextX, playerGroup.position.z)) playerGroup.position.x = nextX;
+            if (canMoveTo(playerGroup.position.x, nextZ)) playerGroup.position.z = nextZ;
+
+            // Character faces the direction they are moving
+            playerGroup.rotation.y = Math.atan2(dx, dz);
+        }
+
+        // --- CAMERA AUTO-ALIGN LOGIC ---
+        // If no screen touches for 1.5s, AND running forward for 0.5s
+        if (timeSinceLastManualCam > 1.5 && continuousMoveTime > 0.5) {
+            // Target angle is exactly behind the player's back
+            let targetAngle = playerGroup.rotation.y - Math.PI;
+            
+            // Shortest path interpolation (so it doesn't do 360 spins)
+            let diff = targetAngle - cameraAngle;
+            diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+            
+            // Glide smoothly (higher number = faster snap)
+            const glideSpeed = 2.5; 
+            cameraAngle += diff * glideSpeed * delta;
+        }
+
+        // Gravity check
+        const groundY = getTerrainHeight(playerGroup.position.x, playerGroup.position.z);
+        if (isGrounded) {
+            playerGroup.position.y = groundY;
+        } else {
+            playerGroup.position.y += playerVY;
+            playerVY -= 0.8 * delta;
+            if (playerGroup.position.y <= groundY) {
+                playerGroup.position.y = groundY;
+                playerVY = 0;
+                isGrounded = true;
+            }
+        }
+
+        // Autonomous Creature Updates
+        creatures.forEach(c => c.update(delta, playerGroup.position));
+
+        // Projectiles
+        for (let i = projectiles.length - 1; i >= 0; i--) {
+            const p = projectiles[i];
+            p.life -= delta;
+            p.mesh.position.x += p.dirX * p.speed * delta;
+            p.mesh.position.z += p.dirZ * p.speed * delta;
+
+            for (let c of creatures) {
+                if (c.hp > 0 && Math.hypot(p.mesh.position.x - c.x, p.mesh.position.z - c.z) < 1.2) {
+                    c.takeDamage(p.damage);
+                    p.life = 0;
+                    break;
+                }
+            }
+
+            if (p.life <= 0) {
+                scene.remove(p.mesh);
+                projectiles.splice(i, 1);
+            }
+        }
 
         // Traps
         for (let i = traps.length - 1; i >= 0; i--) {
@@ -737,4 +883,4 @@ function initGameEngine() {
         camera.updateProjectionMatrix();
         renderer.setSize(window.innerWidth, window.innerHeight);
     });
-        }
+}

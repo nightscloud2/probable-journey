@@ -122,6 +122,7 @@ function initGameEngine() {
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.domElement.style.touchAction = 'none'; // Prevent browser scroll gestures on mobile
     container.appendChild(renderer.domElement);
 
     scene.add(new THREE.AmbientLight(0xffffff, 0.75));
@@ -556,8 +557,9 @@ function initGameEngine() {
     // [SECTION 9: CAMERA SYSTEM (SWIPE & LOCK)]
     // =========================================================================
     let cameraAngle = 0;
-    let isCameraLocked = true;
+    let isCameraLocked = false; // Default to FREE camera so swiping works out of the box
     let isSwipingCamera = false;
+    let activePointerId = null;
     let lastTouchX = 0;
 
     window.toggleCameraMode = function() {
@@ -570,23 +572,33 @@ function initGameEngine() {
     };
 
     window.addEventListener('pointerdown', (e) => {
-        if (e.target.closest('button') || e.target.closest('#menu-modal') || e.target.closest('#joystick-base')) return;
+        // Ignore touches on UI overlays or buttons
+        if (e.target.closest('button') || e.target.closest('#menu-modal') || e.target.closest('#joystick-base') || e.target.closest('.ui-layer')) return;
+        
         if (!isCameraLocked) {
             isSwipingCamera = true;
+            activePointerId = e.pointerId;
             lastTouchX = e.clientX;
         }
     });
 
     window.addEventListener('pointermove', (e) => {
-        if (isSwipingCamera && !isCameraLocked) {
+        if (isSwipingCamera && !isCameraLocked && e.pointerId === activePointerId) {
             const deltaX = e.clientX - lastTouchX;
-            cameraAngle -= deltaX * 0.005;
+            cameraAngle -= deltaX * 0.005; // Orbit camera around player
             lastTouchX = e.clientX;
         }
     });
 
-    window.addEventListener('pointerup', () => { isSwipingCamera = false; });
-    window.addEventListener('pointercancel', () => { isSwipingCamera = false; });
+    const stopSwipe = (e) => {
+        if (e.pointerId === activePointerId) {
+            isSwipingCamera = false;
+            activePointerId = null;
+        }
+    };
+
+    window.addEventListener('pointerup', stopSwipe);
+    window.addEventListener('pointercancel', stopSwipe);
 
     updateUI();
 
@@ -614,6 +626,8 @@ function initGameEngine() {
 
         if (Math.abs(jx) > 0.05 || Math.abs(jy) > 0.05) {
             const moveSpeed = 7.5;
+
+            // Calculate movement direction relative to camera angle
             const dx = (jx * Math.cos(cameraAngle) + jy * Math.sin(cameraAngle)) * moveSpeed * delta;
             const dz = (-jx * Math.sin(cameraAngle) + jy * Math.cos(cameraAngle)) * moveSpeed * delta;
 
@@ -623,6 +637,7 @@ function initGameEngine() {
             if (canMoveTo(nextX, playerGroup.position.z)) playerGroup.position.x = nextX;
             if (canMoveTo(playerGroup.position.x, nextZ)) playerGroup.position.z = nextZ;
 
+            // Face movement direction
             playerGroup.rotation.y = Math.atan2(dx, dz);
         }
 
@@ -639,12 +654,10 @@ function initGameEngine() {
             }
         }
 
-        if (isCameraLocked) {
-            cameraAngle = playerGroup.rotation.y;
-        }
-
+        // Autonomous Creature Updates
         creatures.forEach(c => c.update(delta, playerGroup.position));
 
+        // Projectiles
         for (let i = projectiles.length - 1; i >= 0; i--) {
             const p = projectiles[i];
             p.life -= delta;
@@ -665,6 +678,7 @@ function initGameEngine() {
             }
         }
 
+        // Traps
         for (let i = traps.length - 1; i >= 0; i--) {
             const t = traps[i];
             for (let c of creatures) {
@@ -678,6 +692,7 @@ function initGameEngine() {
             }
         }
 
+        // Target Ring / Overlay
         let closest = null;
         let minDist = 3.5;
         harvestables.forEach(h => {
@@ -702,6 +717,7 @@ function initGameEngine() {
             if (targetOverlay) targetOverlay.style.display = 'none';
         }
 
+        // Camera Positioning
         const aspect = window.innerWidth / window.innerHeight;
         const camDistance = aspect > 1.0 ? 5.5 : 7.0;
         const camHeight = aspect > 1.0 ? 2.8 : 3.5;
@@ -721,4 +737,4 @@ function initGameEngine() {
         camera.updateProjectionMatrix();
         renderer.setSize(window.innerWidth, window.innerHeight);
     });
-}
+        }

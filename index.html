@@ -174,7 +174,7 @@
             </h1>
             <p class="text-xs text-slate-400">Survival & Adventure Awaits</p>
             <button id="btn-show-creation" class="w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-600 active:scale-95 text-slate-950 font-black rounded-2xl shadow-lg shadow-emerald-950/50 transition-all touch-action-manipulation">
-                START GAME
+                CREATE CHARACTER
             </button>
             <span class="game-version" style="position: absolute; bottom: 12px; right: 16px; color: #aaaaaa; font-family: monospace; font-size: 12px;">v0.0.2</span>
         </div>
@@ -212,68 +212,6 @@
             </button>
         </div>
     </div>
-
-    <script>
-        document.addEventListener("DOMContentLoaded", () => {
-        // Screen Transitions
-        const titleBtn = document.getElementById('btn-show-creation');
-        if (titleBtn) {
-            titleBtn.addEventListener('pointerdown', (e) => {
-                e.preventDefault();
-                showCharacterCreation();
-            });
-        }
-
-        const startBtn = document.getElementById('btn-start-game');
-        if (startBtn) {
-            startBtn.addEventListener('pointerdown', (e) => {
-                e.preventDefault();
-                startGame();
-            });
-        }
-
-        // Gender Selectors
-        document.getElementById('btn-g-m')?.addEventListener('pointerdown', (e) => { e.preventDefault(); selectGender('MALE'); });
-        document.getElementById('btn-g-f')?.addEventListener('pointerdown', (e) => { e.preventDefault(); selectGender('FEMALE'); });
-
-        // Class Selectors
-        document.getElementById('btn-c-brawler')?.addEventListener('pointerdown', (e) => { e.preventDefault(); selectClass('BRAWLER'); });
-        document.getElementById('btn-c-hunter')?.addEventListener('pointerdown', (e) => { e.preventDefault(); selectClass('HUNTER'); });
-        document.getElementById('btn-c-mage')?.addEventListener('pointerdown', (e) => { e.preventDefault(); selectClass('MAGE'); });
-
-        // Tab Switchers inside Inventory Modal
-        document.getElementById('tab-btn-inv')?.addEventListener('pointerdown', (e) => { e.preventDefault(); switchTab('inv'); });
-        document.getElementById('tab-btn-craft')?.addEventListener('pointerdown', (e) => { e.preventDefault(); switchTab('craft'); });
-        document.getElementById('tab-btn-skills')?.addEventListener('pointerdown', (e) => { e.preventDefault(); switchTab('skills'); });
-
-        // --- NEW: Menu Modal & Camera Listeners ---
-        const menuOpenBtn = document.getElementById('btn-menu-open');
-        if (menuOpenBtn) {
-            menuOpenBtn.addEventListener('pointerdown', (e) => {
-                e.preventDefault();
-                const modal = document.getElementById('menu-modal');
-                if (modal) modal.classList.remove('hidden');
-            });
-        }
-
-        const menuCloseBtn = document.getElementById('btn-menu-close');
-        if (menuCloseBtn) {
-            menuCloseBtn.addEventListener('pointerdown', (e) => {
-                e.preventDefault();
-                const modal = document.getElementById('menu-modal');
-                if (modal) modal.classList.add('hidden');
-            });
-        }
-
-        const camModeBtn = document.getElementById('btn-cam-mode');
-        if (camModeBtn && typeof toggleCameraMode === 'function') {
-            camModeBtn.addEventListener('pointerdown', (e) => {
-                e.preventDefault();
-                toggleCameraMode();
-            });
-        }
-    });
-    </script>
     <script src="game.js"></script>
 </body>
 </html>

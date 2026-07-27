@@ -150,7 +150,6 @@ function initGameEngine() {
         document.getElementById('tab-inv').style.display = (tabName === 'inv') ? 'block' : 'none';
         document.getElementById('tab-craft').style.display = (tabName === 'craft') ? 'block' : 'none';
         document.getElementById('tab-skills').style.display = (tabName === 'skills') ? 'block' : 'none';
-
         document.getElementById('tab-btn-inv')?.classList.toggle('active', tabName === 'inv');
         document.getElementById('tab-btn-craft')?.classList.toggle('active', tabName === 'craft');
         document.getElementById('tab-btn-skills')?.classList.toggle('active', tabName === 'skills');
@@ -193,9 +192,9 @@ function initGameEngine() {
 
     const groundGeo = new THREE.PlaneGeometry(WORLD_SIZE, WORLD_SIZE, 50, 50);
     groundGeo.rotateX(-Math.PI / 2);
+
     const pos = groundGeo.attributes.position;
     const colors = [];
-
     for (let i = 0; i < pos.count; i++) {
         const x = pos.getX(i);
         const z = pos.getZ(i);
@@ -212,7 +211,6 @@ function initGameEngine() {
     }
     groundGeo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
     groundGeo.computeVertexNormals();
-
     const groundMesh = new THREE.Mesh(
         groundGeo, 
         new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true })
@@ -287,7 +285,6 @@ function initGameEngine() {
 
     let harvestables = [];
     let obstacleColliders = [];
-
     const chestData = { isChest: true, mesh: chestMesh, x: 3.5, z: 28, radius: 0.8 };
     harvestables.push(chestData);
     obstacleColliders.push(chestData);
@@ -325,7 +322,7 @@ function initGameEngine() {
         const groundY = getTerrainHeight(x, z);
         g.position.set(x, groundY, z);
         scene.add(g);
-
+        
         const itemData = { isCreature: false, mesh: g, dropType, hp: 3, x, z, radius: propRadius };
         harvestables.push(itemData);
         obstacleColliders.push(itemData);
@@ -363,13 +360,10 @@ function initGameEngine() {
             this.hp = template.hp;
             this.maxHp = template.hp;
             this.state = 'IDLE';
-
             this.radius = template.radius || 0.9;
             this.speed = template.speed || 2.5;
-
             this.x = template.x;
             this.z = template.z;
-
             this.targetX = this.x;
             this.targetZ = this.z;
             this.changeTargetTimer = 0;
@@ -386,7 +380,6 @@ function initGameEngine() {
             const gY = getTerrainHeight(this.x, this.z);
             this.group.position.set(this.x, gY, this.z);
             scene.add(this.group);
-
             this.mesh = this.group;
         }
 
@@ -499,12 +492,11 @@ function initGameEngine() {
             const pGeo = (playerClass === 'MAGE') ? new THREE.SphereGeometry(0.3) : new THREE.CylinderGeometry(0.05, 0.05, 0.8);
             const pMat = new THREE.MeshBasicMaterial({ color: (playerClass === 'MAGE') ? 0x00ffff : 0xffaa00 });
             const proj = new THREE.Mesh(pGeo, pMat);
-
             proj.position.copy(playerGroup.position);
             proj.position.y += 1.2;
             proj.rotation.y = playerGroup.rotation.y;
             scene.add(proj);
-
+            
             projectiles.push({
                 mesh: proj,
                 dirX: Math.sin(playerGroup.rotation.y),
@@ -533,9 +525,8 @@ function initGameEngine() {
             blast.rotation.x = -Math.PI / 2;
             blast.position.set(playerGroup.position.x, getTerrainHeight(playerGroup.position.x, playerGroup.position.z) + 0.1, playerGroup.position.z);
             scene.add(blast);
-
+            
             setTimeout(() => scene.remove(blast), 400);
-
             creatures.forEach(c => {
                 if (Math.hypot(playerGroup.position.x - c.x, playerGroup.position.z - c.z) < 3.8) {
                     c.takeDamage(12);
@@ -578,13 +569,16 @@ function initGameEngine() {
         if (!baseEl || !knobEl) return;
         const rect = baseEl.getBoundingClientRect();
         const touch = e.touches ? e.touches[0] : e;
+        
         let dx = touch.clientX - (rect.left + rect.width / 2);
         let dy = touch.clientY - (rect.top + rect.height / 2);
+        
         const dist = Math.hypot(dx, dy);
         const maxR = 40;
-
+        
         if (dist > maxR) { dx = (dx / dist) * maxR; dy = (dy / dist) * maxR; }
         knobEl.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+        
         joystickVector = dist < 5 ? { x: 0, y: 0 } : { x: dx / maxR, y: dy / maxR };
     }
 
@@ -600,130 +594,6 @@ function initGameEngine() {
     }
 
     // =========================================================================
-    // [SECTION 9: CAMERA SYSTEM (SWIPE & LOCK)]
-    // =========================================================================
-    let cameraAngle = 0;
-    let isCameraLocked = false; // Default to FREE camera so swiping works out of the box
-    let isSwipingCamera = false;
-    let activePointerId = null;
-    let lastTouchX = 0;
-
-    window.toggleCameraMode = function() {
-        isCameraLocked = !isCameraLocked;
-        const camModeBtn = document.getElementById('btn-cam-mode');
-        if (camModeBtn) {
-            camModeBtn.innerText = isCameraLocked ? '🔒 CAM: LOCKED' : '🔓 CAM: FREE';
-            camModeBtn.style.color = isCameraLocked ? '#34d399' : '#fbbf24';
-        }
-    };
-
-    window.addEventListener('pointerdown', (e) => {
-        // Ignore touches on UI overlays or buttons
-        if (e.target.closest('button') || e.target.closest('#menu-modal') || e.target.closest('#joystick-base') || e.target.closest('.ui-layer')) return;
-        
-        if (!isCameraLocked) {
-            isSwipingCamera = true;
-            activePointerId = e.pointerId;
-            lastTouchX = e.clientX;
-        }
-    });
-
-    window.addEventListener('pointermove', (e) => {
-        if (isSwipingCamera && !isCameraLocked && e.pointerId === activePointerId) {
-            const deltaX = e.clientX - lastTouchX;
-            cameraAngle -= deltaX * 0.005; // Orbit camera around player
-            lastTouchX = e.clientX;
-        }
-    });
-
-    const stopSwipe = (e) => {
-        if (e.pointerId === activePointerId) {
-            isSwipingCamera = false;
-            activePointerId = null;
-        }
-    };
-
-    window.addEventListener('pointerup', stopSwipe);
-    window.addEventListener('pointercancel', stopSwipe);
-
-    updateUI();
-
-    function canMoveTo(nextX, nextZ) {
-        const halfBoundary = (WORLD_SIZE / 2) - 1.5;
-        if (Math.abs(nextX) > halfBoundary || Math.abs(nextZ) > halfBoundary) return false;
-
-        for (let obj of obstacleColliders) {
-            if (Math.hypot(nextX - obj.x, nextZ - obj.z) < (PLAYER_RADIUS + obj.radius)) return false;
-        }
-        return true;
-    }
-
-    // =========================================================================
-    // [SECTION 10: MAIN ANIMATION & GAME LOOP]
-    // =========================================================================
-    const clock = new THREE.Clock();
-
-    function animate() {
-        requestAnimationFrame(animate);
-        const delta = clock.getDelta();
-
-        const jx = joystickVector.x;
-        const jy = joystickVector.y;
-
-        if (Math.abs(jx) > 0.05 || Math.abs(jy) > 0.05) {
-            const moveSpeed = 7.5;
-
-            // Calculate movement direction relative to camera angle
-            const dx = (jx * Math.cos(cameraAngle) + jy * Math.sin(cameraAngle)) * moveSpeed * delta;
-            const dz = (-jx * Math.sin(cameraAngle) + jy * Math.cos(cameraAngle)) * moveSpeed * delta;
-
-            const nextX = playerGroup.position.x + dx;
-            const nextZ = playerGroup.position.z + dz;
-
-            if (canMoveTo(nextX, playerGroup.position.z)) playerGroup.position.x = nextX;
-            if (canMoveTo(playerGroup.position.x, nextZ)) playerGroup.position.z = nextZ;
-
-            // Face movement direction
-            playerGroup.rotation.y = Math.atan2(dx, dz);
-        }
-
-        const groundY = getTerrainHeight(playerGroup.position.x, playerGroup.position.z);
-        if (isGrounded) {
-            playerGroup.position.y = groundY;
-        } else {
-            playerGroup.position.y += playerVY;
-            playerVY -= 0.8 * delta;
-            if (playerGroup.position.y <= groundY) {
-                playerGroup.position.y = groundY;
-                playerVY = 0;
-                isGrounded = true;
-            }
-        }
-
-        // Autonomous Creature Updates
-        creatures.forEach(c => c.update(delta, playerGroup.position));
-
-        // Projectiles
-        for (let i = projectiles.length - 1; i >= 0; i--) {
-            const p = projectiles[i];
-            p.life -= delta;
-            p.mesh.position.x += p.dirX * p.speed * delta;
-            p.mesh.position.z += p.dirZ * p.speed * delta;
-
-            for (let c of creatures) {
-                if (c.hp > 0 && Math.hypot(p.mesh.position.x - c.x, p.mesh.position.z - c.z) < 1.2) {
-                    c.takeDamage(p.damage);
-                    p.life = 0;
-                    break;
-                }
-            }
-
-            if (p.life <= 0) {
-                scene.remove(p.mesh);
-                projectiles.splice(i, 1);
-            }
-        }
-// =========================================================================
     // [SECTION 9: CAMERA SYSTEM (SWIPE & AUTO-ALIGN)]
     // =========================================================================
     let cameraAngle = 0;
@@ -929,4 +799,4 @@ function initGameEngine() {
         camera.updateProjectionMatrix();
         renderer.setSize(window.innerWidth, window.innerHeight);
     });
-}
+        }

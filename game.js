@@ -1,7 +1,7 @@
 // =========================================================================
-// [SECTION 0: ERROR HANDLING, LOGGING & VERSIONING]
+// [SECTION 0: ERROR HANDLING, LOGGING & DOM BINDINGS]
 // =========================================================================
-const GAME_VERSION = "v0.0.2";
+const GAME_VERSION = "v0.0.3";
 
 function showMobileError(msg) {
     const logEl = document.getElementById('mobile-log');
@@ -16,37 +16,38 @@ window.onerror = function(msg, url, lineNo) {
     return false;
 };
 
-// Fail-safe button binding & version injection once DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
-    // Inject version number everywhere requested
+// Centralized UI Event Binding
+document.addEventListener("DOMContentLoaded", () => {
+    // 1. Inject Version
     document.querySelectorAll('.game-version').forEach(el => {
         el.innerText = GAME_VERSION;
     });
 
-    // Double-bind start/creation buttons so taps never fail
-    const titleStartBtn = document.getElementById('btn-title-start') || document.getElementById('btn-start');
-    if (titleStartBtn) {
-        titleStartBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            window.showCharacterCreation();
-        });
-        titleStartBtn.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            window.showCharacterCreation();
-        });
-    }
+    // 2. Screen Transitions
+    document.getElementById('btn-show-creation')?.addEventListener('click', () => window.showCharacterCreation());
+    document.getElementById('btn-start-game')?.addEventListener('click', () => window.startGame());
 
-    const creationStartBtn = document.getElementById('btn-create-start') || document.getElementById('btn-start-game');
-    if (creationStartBtn) {
-        creationStartBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            window.startGame();
-        });
-        creationStartBtn.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            window.startGame();
-        });
-    }
+    // 3. Gender Selectors
+    document.getElementById('btn-g-m')?.addEventListener('click', () => window.selectGender('MALE'));
+    document.getElementById('btn-g-f')?.addEventListener('click', () => window.selectGender('FEMALE'));
+
+    // 4. Class Selectors
+    document.getElementById('btn-c-brawler')?.addEventListener('click', () => window.selectClass('BRAWLER'));
+    document.getElementById('btn-c-hunter')?.addEventListener('click', () => window.selectClass('HUNTER'));
+    document.getElementById('btn-c-mage')?.addEventListener('click', () => window.selectClass('MAGE'));
+
+    // 5. Tab Switchers (Inventory/Craft/Skills)
+    document.getElementById('tab-btn-inv')?.addEventListener('click', () => window.switchTab('inv'));
+    document.getElementById('tab-btn-craft')?.addEventListener('click', () => window.switchTab('craft'));
+    document.getElementById('tab-btn-skills')?.addEventListener('click', () => window.switchTab('skills'));
+
+    // 6. Menu Modal
+    document.getElementById('btn-menu-open')?.addEventListener('click', () => {
+        document.getElementById('menu-modal')?.classList.remove('hidden');
+    });
+    document.getElementById('btn-menu-close')?.addEventListener('click', () => {
+        document.getElementById('menu-modal')?.classList.add('hidden');
+    });
 });
 
 // =========================================================================

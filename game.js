@@ -167,7 +167,7 @@ function initGameEngine() {
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.domElement.style.touchAction = 'none'; // Prevent browser scroll gestures on mobile
+    renderer.domElement.style.touchAction = 'none';
     container.appendChild(renderer.domElement);
 
     scene.add(new THREE.AmbientLight(0xffffff, 0.75));
@@ -340,6 +340,11 @@ function initGameEngine() {
         scene.remove(item.mesh);
         harvestables = harvestables.filter(h => h !== item);
         obstacleColliders = obstacleColliders.filter(o => o !== item);
+        
+        if (item.isCreature) {
+            const creatureIndex = creatures.indexOf(item);
+            if (creatureIndex > -1) creatures.splice(creatureIndex, 1);
+        }
     }
 
     // =========================================================================
@@ -434,7 +439,9 @@ function initGameEngine() {
             const dz = this.targetZ - this.z;
             const distToTarget = Math.hypot(dx, dz);
 
-            if (distToTarget > 0.5 && this.state !== 'SUBMITTED') {
+            const minPlayerDist = 0.5 + this.radius;
+
+            if (distToTarget > minPlayerDist && this.state !== 'SUBMITTED') {
                 const angle = Math.atan2(dx, dz);
                 const moveX = this.x + Math.sin(angle) * this.speed * delta;
                 const moveZ = this.z + Math.cos(angle) * this.speed * delta;
@@ -601,12 +608,10 @@ function initGameEngine() {
     let activePointerId = null;
     let lastTouchX = 0;
     
-    // Auto-camera tracking variables
-    let timeSinceLastManualCam = 100; // Starts high so it can align immediately
+    let timeSinceLastManualCam = 100; 
     let continuousMoveTime = 0;
 
     window.addEventListener('pointerdown', (e) => {
-        // Ignore touches on UI overlays or buttons
         if (e.target.closest('button') || e.target.closest('#menu-modal') || e.target.closest('#joystick-base') || e.target.closest('.ui-layer')) return;
         
         isSwipingCamera = true;
@@ -617,9 +622,9 @@ function initGameEngine() {
     window.addEventListener('pointermove', (e) => {
         if (isSwipingCamera && e.pointerId === activePointerId) {
             const deltaX = e.clientX - lastTouchX;
-            cameraAngle -= deltaX * 0.005; // Manual orbit speed
+            cameraAngle -= deltaX * 0.005; 
             lastTouchX = e.clientX;
-            timeSinceLastManualCam = 0; // Reset the manual override timer!
+            timeSinceLastManualCam = 0; 
         }
     });
 
@@ -657,23 +662,20 @@ function initGameEngine() {
         const jx = joystickVector.x;
         const jy = joystickVector.y;
 
-        // Track camera timers for auto-align
         if (!isSwipingCamera) {
             timeSinceLastManualCam += delta;
         }
 
-        // Check if pushing UP on joystick (jy is negative when pushing up)
         let isMovingForward = jy < -0.3;
         if (isMovingForward) {
             continuousMoveTime += delta;
         } else {
-            continuousMoveTime = 0; // Reset if they stop or run backwards
+            continuousMoveTime = 0; 
         }
 
         if (Math.abs(jx) > 0.05 || Math.abs(jy) > 0.05) {
             const moveSpeed = 7.5;
 
-            // Calculate movement direction relative to camera angle
             const dx = (jx * Math.cos(cameraAngle) + jy * Math.sin(cameraAngle)) * moveSpeed * delta;
             const dz = (-jx * Math.sin(cameraAngle) + jy * Math.cos(cameraAngle)) * moveSpeed * delta;
 
@@ -683,26 +685,33 @@ function initGameEngine() {
             if (canMoveTo(nextX, playerGroup.position.z)) playerGroup.position.x = nextX;
             if (canMoveTo(playerGroup.position.x, nextZ)) playerGroup.position.z = nextZ;
 
-            // Character faces the direction they are moving
             playerGroup.rotation.y = Math.atan2(dx, dz);
         }
 
-        // --- CAMERA AUTO-ALIGN LOGIC ---
-        // If no screen touches for 1.5s, AND running forward for 0.5s
+        for (let obs of obstacleColliders) {
+            const dist = Math.hypot(playerGroup.position.x - obs.x, playerGroup.position.z - obs.z);
+            const minDist = PLAYER_RADIUS + obs.radius;
+            
+            if (dist < minDist && dist > 0.001) {
+                const overlap = minDist - dist;
+                const pushX = (playerGroup.position.x - obs.x) / dist;
+                const pushZ = (playerGroup.position.z - obs.z) / dist;
+                
+                playerGroup.position.x += pushX * overlap;
+                playerGroup.position.z += pushZ * overlap;
+            }
+        }
+
         if (timeSinceLastManualCam > 1.5 && continuousMoveTime > 0.5) {
-            // Target angle is exactly behind the player's back
             let targetAngle = playerGroup.rotation.y - Math.PI;
             
-            // Shortest path interpolation (so it doesn't do 360 spins)
             let diff = targetAngle - cameraAngle;
             diff = Math.atan2(Math.sin(diff), Math.cos(diff));
             
-            // Glide smoothly (higher number = faster snap)
             const glideSpeed = 2.5; 
             cameraAngle += diff * glideSpeed * delta;
         }
 
-        // Gravity check
         const groundY = getTerrainHeight(playerGroup.position.x, playerGroup.position.z);
         if (isGrounded) {
             playerGroup.position.y = groundY;
@@ -716,10 +725,8 @@ function initGameEngine() {
             }
         }
 
-        // Autonomous Creature Updates
         creatures.forEach(c => c.update(delta, playerGroup.position));
 
-        // Projectiles
         for (let i = projectiles.length - 1; i >= 0; i--) {
             const p = projectiles[i];
             p.life -= delta;
@@ -740,7 +747,6 @@ function initGameEngine() {
             }
         }
 
-        // Traps
         for (let i = traps.length - 1; i >= 0; i--) {
             const t = traps[i];
             for (let c of creatures) {
@@ -754,7 +760,6 @@ function initGameEngine() {
             }
         }
 
-        // Target Ring / Overlay
         let closest = null;
         let minDist = 3.5;
         harvestables.forEach(h => {
@@ -779,7 +784,6 @@ function initGameEngine() {
             if (targetOverlay) targetOverlay.style.display = 'none';
         }
 
-        // Camera Positioning
         const aspect = window.innerWidth / window.innerHeight;
         const camDistance = aspect > 1.0 ? 5.5 : 7.0;
         const camHeight = aspect > 1.0 ? 2.8 : 3.5;
@@ -799,4 +803,4 @@ function initGameEngine() {
         camera.updateProjectionMatrix();
         renderer.setSize(window.innerWidth, window.innerHeight);
     });
-        }
+}

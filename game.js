@@ -1,10 +1,14 @@
 // =========================================================================
-// [SECTION 0: ERROR HANDLING & LOGGING]
+// [SECTION 0: ERROR HANDLING, LOGGING & DOM BINDINGS]
 // =========================================================================
+const GAME_VERSION = "v0.0.3";
+
 function showMobileError(msg) {
     const logEl = document.getElementById('mobile-log');
-    logEl.style.display = 'block';
-    logEl.innerText += '[ERR] ' + msg + '\n';
+    if (logEl) {
+        logEl.style.display = 'block';
+        logEl.innerText += '[ERR] ' + msg + '\n';
+    }
 }
 
 window.onerror = function(msg, url, lineNo) {
@@ -12,39 +16,88 @@ window.onerror = function(msg, url, lineNo) {
     return false;
 };
 
+// Centralized UI Event Binding
+document.addEventListener("DOMContentLoaded", () => {
+    // 1. Inject Version
+    document.querySelectorAll('.game-version').forEach(el => {
+        el.innerText = GAME_VERSION;
+    });
+
+    // 2. Screen Transitions
+    document.getElementById('btn-show-creation')?.addEventListener('click', () => window.showCharacterCreation());
+    document.getElementById('btn-start-game')?.addEventListener('click', () => window.startGame());
+
+    // 3. Gender Selectors
+    document.getElementById('btn-g-m')?.addEventListener('click', () => window.selectGender('MALE'));
+    document.getElementById('btn-g-f')?.addEventListener('click', () => window.selectGender('FEMALE'));
+
+    // 4. Class Selectors
+    document.getElementById('btn-c-brawler')?.addEventListener('click', () => window.selectClass('BRAWLER'));
+    document.getElementById('btn-c-hunter')?.addEventListener('click', () => window.selectClass('HUNTER'));
+    document.getElementById('btn-c-mage')?.addEventListener('click', () => window.selectClass('MAGE'));
+
+    // 5. Tab Switchers (Inventory/Craft/Skills)
+    document.getElementById('tab-btn-inv')?.addEventListener('click', () => window.switchTab('inv'));
+    document.getElementById('tab-btn-craft')?.addEventListener('click', () => window.switchTab('craft'));
+    document.getElementById('tab-btn-skills')?.addEventListener('click', () => window.switchTab('skills'));
+
+    // 6. Menu Modal
+    document.getElementById('btn-menu-open')?.addEventListener('click', () => {
+        document.getElementById('menu-modal')?.classList.remove('hidden');
+    });
+    document.getElementById('btn-menu-close')?.addEventListener('click', () => {
+        document.getElementById('menu-modal')?.classList.add('hidden');
+    });
+});
+
 // =========================================================================
 // [SECTION 1: UI STATE & SELECTION HANDLERS]
 // =========================================================================
 let playerGender = 'MALE';
 let playerClass = 'BRAWLER';
 
-function selectGender(g) {
+window.selectGender = function(g) {
     playerGender = g;
-    document.getElementById('btn-g-m').classList.toggle('active', g === 'MALE');
-    document.getElementById('btn-g-f').classList.toggle('active', g === 'FEMALE');
-}
+    document.getElementById('btn-g-m')?.classList.toggle('active', g === 'MALE');
+    document.getElementById('btn-g-f')?.classList.toggle('active', g === 'FEMALE');
+};
 
-function selectClass(c) {
+window.selectClass = function(c) {
     playerClass = c;
-    document.getElementById('btn-c-brawler').classList.toggle('active', c === 'BRAWLER');
-    document.getElementById('btn-c-hunter').classList.toggle('active', c === 'HUNTER');
-    document.getElementById('btn-c-mage').classList.toggle('active', c === 'MAGE');
+    document.getElementById('btn-c-brawler')?.classList.toggle('active', c === 'BRAWLER');
+    document.getElementById('btn-c-hunter')?.classList.toggle('active', c === 'HUNTER');
+    document.getElementById('btn-c-mage')?.classList.toggle('active', c === 'MAGE');
 
     const desc = document.getElementById('class-desc');
-    if (c === 'BRAWLER') desc.innerText = "Brawlers focus on raw power and close-range striking force.";
-    else if (c === 'HUNTER') desc.innerText = "Hunters use bows at range and lay bear traps to immobilize foes.";
-    else if (c === 'MAGE') desc.innerText = "Mages channel offensive elemental magic through staves and wands.";
-}
+    if (desc) {
+        if (c === 'BRAWLER') desc.innerText = "Brawlers focus on raw power and close-range striking force.";
+        else if (c === 'HUNTER') desc.innerText = "Hunters use bows at range and lay bear traps to immobilize foes.";
+        else if (c === 'MAGE') desc.innerText = "Mages channel offensive elemental magic through staves and wands.";
+    }
+};
 
-function showCharacterCreation() {
-    document.getElementById('title-screen').style.display = 'none';
-    document.getElementById('creation-screen').style.display = 'flex';
-}
+window.showCharacterCreation = function() {
+    try {
+        const title = document.getElementById('title-screen');
+        const creation = document.getElementById('creation-screen');
+        if (title) title.style.display = 'none';
+        if (creation) creation.style.display = 'flex';
+    } catch(err) {
+        showMobileError("showCharacterCreation: " + err.message);
+    }
+};
 
-function startGame() {
-    document.getElementById('creation-screen').style.display = 'none';
-    initGameEngine();
-}
+window.startGame = function() {
+    try {
+        const title = document.getElementById('title-screen');
+        const creation = document.getElementById('creation-screen');
+        if (title) title.style.display = 'none';
+        if (creation) creation.style.display = 'none';
+        initGameEngine();
+    } catch(err) {
+        showMobileError("startGame: " + err.message);
+    }
+};
 
 // =========================================================================
 // [SECTION 2: ENGINE INIT & INVENTORY MANAGEMENT]
@@ -97,10 +150,9 @@ function initGameEngine() {
         document.getElementById('tab-inv').style.display = (tabName === 'inv') ? 'block' : 'none';
         document.getElementById('tab-craft').style.display = (tabName === 'craft') ? 'block' : 'none';
         document.getElementById('tab-skills').style.display = (tabName === 'skills') ? 'block' : 'none';
-
-        document.getElementById('tab-btn-inv').classList.toggle('active', tabName === 'inv');
-        document.getElementById('tab-btn-craft').classList.toggle('active', tabName === 'craft');
-        document.getElementById('tab-btn-skills').classList.toggle('active', tabName === 'skills');
+        document.getElementById('tab-btn-inv')?.classList.toggle('active', tabName === 'inv');
+        document.getElementById('tab-btn-craft')?.classList.toggle('active', tabName === 'craft');
+        document.getElementById('tab-btn-skills')?.classList.toggle('active', tabName === 'skills');
     };
 
     // =========================================================================
@@ -115,6 +167,7 @@ function initGameEngine() {
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.domElement.style.touchAction = 'none';
     container.appendChild(renderer.domElement);
 
     scene.add(new THREE.AmbientLight(0xffffff, 0.75));
@@ -139,9 +192,9 @@ function initGameEngine() {
 
     const groundGeo = new THREE.PlaneGeometry(WORLD_SIZE, WORLD_SIZE, 50, 50);
     groundGeo.rotateX(-Math.PI / 2);
+
     const pos = groundGeo.attributes.position;
     const colors = [];
-
     for (let i = 0; i < pos.count; i++) {
         const x = pos.getX(i);
         const z = pos.getZ(i);
@@ -158,7 +211,6 @@ function initGameEngine() {
     }
     groundGeo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
     groundGeo.computeVertexNormals();
-
     const groundMesh = new THREE.Mesh(
         groundGeo, 
         new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true })
@@ -231,9 +283,8 @@ function initGameEngine() {
     chestMesh.position.set(3.5, getTerrainHeight(3.5, 28) + 0.4, 28);
     scene.add(chestMesh);
 
-    const harvestables = [];
-    const obstacleColliders = [];
-
+    let harvestables = [];
+    let obstacleColliders = [];
     const chestData = { isChest: true, mesh: chestMesh, x: 3.5, z: 28, radius: 0.8 };
     harvestables.push(chestData);
     obstacleColliders.push(chestData);
@@ -271,7 +322,7 @@ function initGameEngine() {
         const groundY = getTerrainHeight(x, z);
         g.position.set(x, groundY, z);
         scene.add(g);
-
+        
         const itemData = { isCreature: false, mesh: g, dropType, hp: 3, x, z, radius: propRadius };
         harvestables.push(itemData);
         obstacleColliders.push(itemData);
@@ -283,6 +334,17 @@ function initGameEngine() {
         const r = Math.random();
         if (r < 0.6) spawnProp('tree', rx, rz);
         else spawnProp('stone', rx, rz);
+    }
+
+    function removeHarvestable(item) {
+        scene.remove(item.mesh);
+        harvestables = harvestables.filter(h => h !== item);
+        obstacleColliders = obstacleColliders.filter(o => o !== item);
+        
+        if (item.isCreature) {
+            const creatureIndex = creatures.indexOf(item);
+            if (creatureIndex > -1) creatures.splice(creatureIndex, 1);
+        }
     }
 
     // =========================================================================
@@ -303,13 +365,10 @@ function initGameEngine() {
             this.hp = template.hp;
             this.maxHp = template.hp;
             this.state = 'IDLE';
-
             this.radius = template.radius || 0.9;
             this.speed = template.speed || 2.5;
-
             this.x = template.x;
             this.z = template.z;
-
             this.targetX = this.x;
             this.targetZ = this.z;
             this.changeTargetTimer = 0;
@@ -326,15 +385,20 @@ function initGameEngine() {
             const gY = getTerrainHeight(this.x, this.z);
             this.group.position.set(this.x, gY, this.z);
             scene.add(this.group);
-
             this.mesh = this.group;
         }
 
         takeDamage(amt) {
             this.hp -= amt;
-            if (this.hp <= (this.maxHp * 0.1)) this.state = 'SUBMITTED';
-            else if (this.temperament !== 'DOCILE') this.state = 'HOSTILE';
-            else this.state = 'FLEEING';
+            if (this.hp <= 0) {
+                removeHarvestable(this);
+            } else if (this.hp <= (this.maxHp * 0.1)) {
+                this.state = 'SUBMITTED';
+            } else if (this.temperament !== 'DOCILE') {
+                this.state = 'HOSTILE';
+            } else {
+                this.state = 'FLEEING';
+            }
         }
 
         getConditionText() {
@@ -375,7 +439,9 @@ function initGameEngine() {
             const dz = this.targetZ - this.z;
             const distToTarget = Math.hypot(dx, dz);
 
-            if (distToTarget > 0.5 && this.state !== 'SUBMITTED') {
+            const minPlayerDist = 0.5 + this.radius;
+
+            if (distToTarget > minPlayerDist && this.state !== 'SUBMITTED') {
                 const angle = Math.atan2(dx, dz);
                 const moveX = this.x + Math.sin(angle) * this.speed * delta;
                 const moveZ = this.z + Math.cos(angle) * this.speed * delta;
@@ -416,8 +482,16 @@ function initGameEngine() {
         if (playerClass === 'BRAWLER') {
             for (let h of harvestables) {
                 if (Math.hypot(playerGroup.position.x - h.x, playerGroup.position.z - h.z) < 2.2) {
-                    if (h.isCreature) h.takeDamage(8);
-                    else h.hp--;
+                    if (h.isCreature) {
+                        h.takeDamage(8);
+                    } else if (!h.isChest) {
+                        h.hp--;
+                        if (h.hp <= 0) {
+                            inventory[h.dropType] += 3;
+                            updateUI();
+                            removeHarvestable(h);
+                        }
+                    }
                     break;
                 }
             }
@@ -425,12 +499,11 @@ function initGameEngine() {
             const pGeo = (playerClass === 'MAGE') ? new THREE.SphereGeometry(0.3) : new THREE.CylinderGeometry(0.05, 0.05, 0.8);
             const pMat = new THREE.MeshBasicMaterial({ color: (playerClass === 'MAGE') ? 0x00ffff : 0xffaa00 });
             const proj = new THREE.Mesh(pGeo, pMat);
-
             proj.position.copy(playerGroup.position);
             proj.position.y += 1.2;
             proj.rotation.y = playerGroup.rotation.y;
             scene.add(proj);
-
+            
             projectiles.push({
                 mesh: proj,
                 dirX: Math.sin(playerGroup.rotation.y),
@@ -459,9 +532,8 @@ function initGameEngine() {
             blast.rotation.x = -Math.PI / 2;
             blast.position.set(playerGroup.position.x, getTerrainHeight(playerGroup.position.x, playerGroup.position.z) + 0.1, playerGroup.position.z);
             scene.add(blast);
-
+            
             setTimeout(() => scene.remove(blast), 400);
-
             creatures.forEach(c => {
                 if (Math.hypot(playerGroup.position.x - c.x, playerGroup.position.z - c.z) < 3.8) {
                     c.takeDamage(12);
@@ -470,22 +542,28 @@ function initGameEngine() {
         }
     }
 
-    attackBtn.onclick = performPrimaryAttack;
-    skillBtn.onclick = performClassSkill;
+    if (attackBtn) attackBtn.onclick = performPrimaryAttack;
+    if (skillBtn) skillBtn.onclick = performClassSkill;
 
-    document.getElementById('btn-interact').onclick = () => {
-        if (!chestLooted && Math.hypot(playerGroup.position.x - chestData.x, playerGroup.position.z - chestData.z) < 2.5) {
-            chestLooted = true;
-            inventory.hatchet += 1;
-            inventory.knife += 1;
-            updateUI();
-            scene.remove(chestMesh);
-        }
-    };
+    const interactBtn = document.getElementById('btn-interact');
+    if (interactBtn) {
+        interactBtn.onclick = () => {
+            if (!chestLooted && Math.hypot(playerGroup.position.x - chestData.x, playerGroup.position.z - chestData.z) < 2.5) {
+                chestLooted = true;
+                inventory.hatchet += 1;
+                inventory.knife += 1;
+                updateUI();
+                removeHarvestable(chestData);
+            }
+        };
+    }
 
-    document.getElementById('btn-jump').onclick = () => {
-        if (isGrounded) { playerVY = 0.24; isGrounded = false; }
-    };
+    const jumpBtn = document.getElementById('btn-jump');
+    if (jumpBtn) {
+        jumpBtn.onclick = () => {
+            if (isGrounded) { playerVY = 0.24; isGrounded = false; }
+        };
+    }
 
     // =========================================================================
     // [SECTION 8: JOYSTICK CONTROL SYSTEM]
@@ -495,66 +573,70 @@ function initGameEngine() {
     const knobEl = document.getElementById('joystick-knob');
 
     function handleJoystick(e) {
+        if (!baseEl || !knobEl) return;
         const rect = baseEl.getBoundingClientRect();
         const touch = e.touches ? e.touches[0] : e;
+        
         let dx = touch.clientX - (rect.left + rect.width / 2);
         let dy = touch.clientY - (rect.top + rect.height / 2);
+        
         const dist = Math.hypot(dx, dy);
         const maxR = 40;
-
+        
         if (dist > maxR) { dx = (dx / dist) * maxR; dy = (dy / dist) * maxR; }
         knobEl.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+        
         joystickVector = dist < 5 ? { x: 0, y: 0 } : { x: dx / maxR, y: dy / maxR };
     }
 
     function resetJoystick() {
-        knobEl.style.transform = `translate(-50%, -50%)`;
+        if (knobEl) knobEl.style.transform = `translate(-50%, -50%)`;
         joystickVector = { x: 0, y: 0 };
     }
 
-    baseEl.addEventListener('pointerdown', (e) => { e.stopPropagation(); baseEl.setPointerCapture(e.pointerId); handleJoystick(e); });
-    baseEl.addEventListener('pointermove', (e) => { if (baseEl.hasPointerCapture(e.pointerId)) handleJoystick(e); });
-    baseEl.addEventListener('pointerup', (e) => { baseEl.releasePointerCapture(e.pointerId); resetJoystick(); });
+    if (baseEl) {
+        baseEl.addEventListener('pointerdown', (e) => { e.stopPropagation(); baseEl.setPointerCapture(e.pointerId); handleJoystick(e); });
+        baseEl.addEventListener('pointermove', (e) => { if (baseEl.hasPointerCapture(e.pointerId)) handleJoystick(e); });
+        baseEl.addEventListener('pointerup', (e) => { baseEl.releasePointerCapture(e.pointerId); resetJoystick(); });
+    }
 
     // =========================================================================
-    // [SECTION 9: CAMERA SYSTEM (SWIPE & LOCK)]
+    // [SECTION 9: CAMERA SYSTEM (SWIPE & AUTO-ALIGN)]
     // =========================================================================
     let cameraAngle = 0;
-    let isCameraLocked = true;
     let isSwipingCamera = false;
+    let activePointerId = null;
     let lastTouchX = 0;
+    
+    let timeSinceLastManualCam = 100; 
+    let continuousMoveTime = 0;
 
-    const camModeBtn = document.getElementById('btn-cam-mode');
-    camModeBtn.onclick = () => {
-        isCameraLocked = !isCameraLocked;
-        camModeBtn.innerText = isCameraLocked ? '🔒 CAM: LOCKED' : '🔓 CAM: FREE';
-        camModeBtn.style.color = isCameraLocked ? '#34d399' : '#fbbf24';
-    };
-
-    // Touch/Pointer Swipe Listener
     window.addEventListener('pointerdown', (e) => {
-        if (e.target.closest('button') || e.target.closest('#menu-modal') || e.target.closest('#joystick-base')) return;
-        if (!isCameraLocked) {
-            isSwipingCamera = true;
-            lastTouchX = e.clientX;
-        }
+        if (e.target.closest('button') || e.target.closest('#menu-modal') || e.target.closest('#joystick-base') || e.target.closest('.ui-layer')) return;
+        
+        isSwipingCamera = true;
+        activePointerId = e.pointerId;
+        lastTouchX = e.clientX;
     });
 
     window.addEventListener('pointermove', (e) => {
-        if (isSwipingCamera && !isCameraLocked) {
+        if (isSwipingCamera && e.pointerId === activePointerId) {
             const deltaX = e.clientX - lastTouchX;
-            cameraAngle -= deltaX * 0.005;
+            cameraAngle -= deltaX * 0.005; 
             lastTouchX = e.clientX;
+            timeSinceLastManualCam = 0; 
         }
     });
 
-    window.addEventListener('pointerup', () => { isSwipingCamera = false; });
-    window.addEventListener('pointercancel', () => { isSwipingCamera = false; });
+    const stopSwipe = (e) => {
+        if (e.pointerId === activePointerId) {
+            isSwipingCamera = false;
+            activePointerId = null;
+        }
+    };
 
-    // Modal Handlers
-    const menuModal = document.getElementById('menu-modal');
-    document.getElementById('btn-menu-open').onclick = () => { updateUI(); menuModal.style.display = 'flex'; };
-    document.getElementById('btn-menu-close').onclick = () => { menuModal.style.display = 'none'; };
+    window.addEventListener('pointerup', stopSwipe);
+    window.addEventListener('pointercancel', stopSwipe);
 
     updateUI();
 
@@ -580,8 +662,20 @@ function initGameEngine() {
         const jx = joystickVector.x;
         const jy = joystickVector.y;
 
+        if (!isSwipingCamera) {
+            timeSinceLastManualCam += delta;
+        }
+
+        let isMovingForward = jy < -0.3;
+        if (isMovingForward) {
+            continuousMoveTime += delta;
+        } else {
+            continuousMoveTime = 0; 
+        }
+
         if (Math.abs(jx) > 0.05 || Math.abs(jy) > 0.05) {
             const moveSpeed = 7.5;
+
             const dx = (jx * Math.cos(cameraAngle) + jy * Math.sin(cameraAngle)) * moveSpeed * delta;
             const dz = (-jx * Math.sin(cameraAngle) + jy * Math.cos(cameraAngle)) * moveSpeed * delta;
 
@@ -592,6 +686,30 @@ function initGameEngine() {
             if (canMoveTo(playerGroup.position.x, nextZ)) playerGroup.position.z = nextZ;
 
             playerGroup.rotation.y = Math.atan2(dx, dz);
+        }
+
+        for (let obs of obstacleColliders) {
+            const dist = Math.hypot(playerGroup.position.x - obs.x, playerGroup.position.z - obs.z);
+            const minDist = PLAYER_RADIUS + obs.radius;
+            
+            if (dist < minDist && dist > 0.001) {
+                const overlap = minDist - dist;
+                const pushX = (playerGroup.position.x - obs.x) / dist;
+                const pushZ = (playerGroup.position.z - obs.z) / dist;
+                
+                playerGroup.position.x += pushX * overlap;
+                playerGroup.position.z += pushZ * overlap;
+            }
+        }
+
+        if (timeSinceLastManualCam > 1.5 && continuousMoveTime > 0.5) {
+            let targetAngle = playerGroup.rotation.y - Math.PI;
+            
+            let diff = targetAngle - cameraAngle;
+            diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+            
+            const glideSpeed = 2.5; 
+            cameraAngle += diff * glideSpeed * delta;
         }
 
         const groundY = getTerrainHeight(playerGroup.position.x, playerGroup.position.z);
@@ -607,11 +725,6 @@ function initGameEngine() {
             }
         }
 
-        // Lock camera angle instantly to player angle when LOCKED (eliminates lag discordance)
-        if (isCameraLocked) {
-            cameraAngle = playerGroup.rotation.y;
-        }
-
         creatures.forEach(c => c.update(delta, playerGroup.position));
 
         for (let i = projectiles.length - 1; i >= 0; i--) {
@@ -621,7 +734,7 @@ function initGameEngine() {
             p.mesh.position.z += p.dirZ * p.speed * delta;
 
             for (let c of creatures) {
-                if (Math.hypot(p.mesh.position.x - c.x, p.mesh.position.z - c.z) < 1.2) {
+                if (c.hp > 0 && Math.hypot(p.mesh.position.x - c.x, p.mesh.position.z - c.z) < 1.2) {
                     c.takeDamage(p.damage);
                     p.life = 0;
                     break;
@@ -637,7 +750,7 @@ function initGameEngine() {
         for (let i = traps.length - 1; i >= 0; i--) {
             const t = traps[i];
             for (let c of creatures) {
-                if (Math.hypot(t.x - c.x, t.z - c.z) < 1.0) {
+                if (c.hp > 0 && Math.hypot(t.x - c.x, t.z - c.z) < 1.0) {
                     c.rootedTimer = 4.0;
                     c.takeDamage(5);
                     scene.remove(t.mesh);
@@ -660,23 +773,21 @@ function initGameEngine() {
             targetRing.visible = true;
 
             if (closest.isCreature) {
-                targetOverlay.style.display = 'block';
+                if (targetOverlay) targetOverlay.style.display = 'block';
                 document.getElementById('target-name-lbl').innerText = closest.name;
                 document.getElementById('target-status-lbl').innerText = closest.getConditionText();
             } else {
-                targetOverlay.style.display = 'none';
+                if (targetOverlay) targetOverlay.style.display = 'none';
             }
         } else {
             targetRing.visible = false;
-            targetOverlay.style.display = 'none';
+            if (targetOverlay) targetOverlay.style.display = 'none';
         }
 
-        // Dynamic distance scaling based on Aspect Ratio
         const aspect = window.innerWidth / window.innerHeight;
-        const camDistance = aspect > 1.0 ? 5.5 : 7.0; // Pull camera in closer during Landscape mode
+        const camDistance = aspect > 1.0 ? 5.5 : 7.0;
         const camHeight = aspect > 1.0 ? 2.8 : 3.5;
 
-        // Instant direct camera positioning
         camera.position.x = playerGroup.position.x + Math.sin(cameraAngle) * camDistance;
         camera.position.z = playerGroup.position.z + Math.cos(cameraAngle) * camDistance;
         camera.position.y = playerGroup.position.y + camHeight;
@@ -692,4 +803,4 @@ function initGameEngine() {
         camera.updateProjectionMatrix();
         renderer.setSize(window.innerWidth, window.innerHeight);
     });
-        }
+}

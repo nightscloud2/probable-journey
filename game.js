@@ -1,7 +1,7 @@
 // =========================================================================
 // [SECTION 0: ERROR HANDLING, LOGGING & DOM BINDINGS]
 // =========================================================================
-const GAME_VERSION = "v0.0.5";
+const GAME_VERSION = "v0.0.6";
 
 // Displays errors on the mobile UI for easier debugging
 function showMobileError(msg) {
@@ -618,44 +618,72 @@ function initGameEngine() {
         };
     }
 
-    // =========================================================================
-    // [SECTION 8: JOYSTICK CONTROL SYSTEM]
-    // =========================================================================
-    let joystickVector = { x: 0, y: 0 };
-    const baseEl = document.getElementById('joystick-base');
-    const knobEl = document.getElementById('joystick-knob');
+// =========================================================================
+// [SECTION 8: JOYSTICK CONTROL SYSTEM]
+// =========================================================================
+let joystickVector = { x: 0, y: 0 };
+const baseEl = document.getElementById('joystick-base');
+const knobEl = document.getElementById('joystick-knob');
+
+let isDraggingJoystick = false;
+let joystickPointerId = null;
+const maxRadius = 32; // Matches your new HUD dimensions
+
+function handleJoystickMove(e) {
+    if (!isDraggingJoystick || !baseEl || !knobEl) return;
     
-    // Translates pointer movement into a directional vector for character movement
-    function handleJoystick(e) {
-        if (!baseEl || !knobEl) return;
-        const rect = baseEl.getBoundingClientRect();
-        const touch = e.touches ? e.touches[0] : e; // Support touch & mouse
-        
-        let dx = touch.clientX - (rect.left + rect.width / 2);
-        let dy = touch.clientY - (rect.top + rect.height / 2);
-        
-        const dist = Math.hypot(dx, dy);
-        const maxR = 40; // Max distance the knob can travel
-        
-        if (dist > maxR) { dx = (dx / dist) * maxR; dy = (dy / dist) * maxR; }
-        knobEl.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
-        
-        // Include deadzone (dist < 5) to prevent drift
-        joystickVector = dist < 5 ? { x: 0, y: 0 } : { x: dx / maxR, y: dy / maxR };
+    // Support multi-touch pointer targeting
+    if (e.pointerId !== undefined && joystickPointerId !== null && e.pointerId !== joystickPointerId) return;
+
+    const rect = baseEl.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    let deltaX = e.clientX - centerX;
+    let deltaY = e.clientY - centerY;
+    const distance = Math.hypot(deltaX, deltaY);
+
+    if (distance > maxRadius) {
+        const angle = Math.atan2(deltaY, deltaX);
+        deltaX = Math.cos(angle) * maxRadius;
+        deltaY = Math.sin(angle) * maxRadius;
     }
-    
-    // Snaps joystick back to center on release
-    function resetJoystick() {
-        if (knobEl) knobEl.style.transform = `translate(-50%, -50%)`;
-        joystickVector = { x: 0, y: 0 };
+
+    knobEl.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+
+    // Deadzone threshold (under 4px registers as zero)
+    joystickVector = distance < 4 ? { x: 0, y: 0 } : { x: deltaX / maxRadius, y: deltaY / maxRadius };
+}
+
+function stopJoystick(e) {
+    if (!isDraggingJoystick) return;
+    if (e && e.pointerId !== undefined && joystickPointerId !== null && e.pointerId !== joystickPointerId) return;
+
+    isDraggingJoystick = false;
+    joystickPointerId = null;
+
+    if (knobEl) {
+        knobEl.style.transform = 'translate(0px, 0px)';
     }
-    
-    // Bind pointer events using capture so the finger stays registered even if it slides off the UI element
-    if (baseEl) {
-        baseEl.addEventListener('pointerdown', (e) => { e.stopPropagation(); baseEl.setPointerCapture(e.pointerId); handleJoystick(e); });
-        baseEl.addEventListener('pointermove', (e) => { if (baseEl.hasPointerCapture(e.pointerId)) handleJoystick(e); });
-        baseEl.addEventListener('pointerup', (e) => { baseEl.releasePointerCapture(e.pointerId); resetJoystick(); });
-    }
+    joystickVector = { x: 0, y: 0 };
+}
+
+if (baseEl) {
+    baseEl.addEventListener('pointerdown', (e) => {
+        e.stopPropagation();
+        isDraggingJoystick = true;
+        joystickPointerId = e.pointerId;
+        baseEl.setPointerCapture(e.pointerId);
+        handleJoystickMove(e);
+    });
+
+    baseEl.addEventListener('pointermove', handleJoystickMove);
+    baseEl.addEventListener('pointerup', (e) => {
+        if (baseEl.hasPointerCapture(e.pointerId)) baseEl.releasePointerCapture(e.pointerId);
+        stopJoystick(e);
+    });
+    baseEl.addEventListener('pointercancel', stopJoystick);
+}
 
     // =========================================================================
     // [SECTION 9: CAMERA SYSTEM (SWIPE & AUTO-ALIGN)]

@@ -662,7 +662,7 @@ function initGameEngine() {
         return true;
     }
 
-    // =========================================================================
+// =========================================================================
     // [SECTION 10: MAIN ANIMATION & GAME LOOP]
     // =========================================================================
     const clock = new THREE.Clock();
@@ -670,6 +670,14 @@ function initGameEngine() {
     function animate() {
         requestAnimationFrame(animate);
         const delta = clock.getDelta();
+
+        // --- PASTE HERE ---
+        // Rotate camera angle based on Left Camera Joystick
+        if (Math.abs(camJoystickVector.x) > 0.05) {
+            cameraAngle -= camJoystickVector.x * 2.5 * delta;
+            timeSinceLastManualCam = 0; // Pauses auto-alignment while actively steering camera
+        }
+        // ------------------
 
         const jx = joystickVector.x;
         const jy = joystickVector.y;

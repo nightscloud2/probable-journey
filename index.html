@@ -90,33 +90,31 @@
         </div>
     </div>
 
-    <div class="fixed bottom-4 left-4 z-20 pointer-events-auto">
-        <div id="joystick-base" class="relative w-28 h-28 bg-slate-950/80 backdrop-blur-md border-2 border-slate-700/80 rounded-full flex items-center justify-center shadow-2xl touch-action-manipulation">
-            <div id="joystick-knob" class="absolute w-12 h-12 bg-amber-500 border-2 border-amber-300 rounded-full shadow-md pointer-events-none transition-transform duration-75"></div>
+<div class="fixed bottom-4 left-4 z-20 pointer-events-auto">
+        <div id="cam-joystick-base" class="relative w-28 h-28 bg-slate-950/80 backdrop-blur-md border-2 border-slate-700/80 rounded-full flex items-center justify-center shadow-2xl touch-action-manipulation">
+            <div id="cam-joystick-knob" class="absolute w-12 h-12 bg-indigo-500 border-2 border-indigo-300 rounded-full shadow-md pointer-events-none transition-transform duration-75"></div>
+            <span class="absolute -top-5 text-[9px] font-black text-indigo-400 tracking-wider">CAMERA</span>
         </div>
     </div>
 
-    <div class="controls-right fixed bottom-4 right-4 z-20 pointer-events-none w-48 h-48 flex items-end justify-end">
-        <div class="relative w-48 h-48 pointer-events-none">
-            <button id="btn-attack" class="absolute top-1 right-2 px-3 py-2 bg-rose-700/90 hover:bg-rose-600 border border-rose-400/80 rounded-xl text-[9px] font-black tracking-wider text-white shadow-md active:scale-90 transition-transform touch-action-manipulation pointer-events-auto">
-                Attack
+    <div class="controls-right fixed bottom-4 right-4 z-20 pointer-events-none flex flex-col items-end">
+        <div class="relative w-32 h-32 mb-[-36px] mr-[10px] pointer-events-none">
+            <button id="btn-attack" class="absolute top-0 left-1 px-2.5 py-1.5 bg-rose-700/90 hover:bg-rose-600 border border-rose-400/80 rounded-xl text-[9px] font-black tracking-wider text-white shadow-md active:scale-90 transition-transform touch-action-manipulation pointer-events-auto flex items-center justify-center">
+                ATTACK
             </button>
             
-            <button id="btn-interact" class="absolute top-6 left-2 px-3 py-2 bg-amber-700/90 hover:bg-amber-600 border border-amber-400/80 rounded-xl text-[9px] font-black tracking-wider text-white shadow-md active:scale-90 transition-transform touch-action-manipulation pointer-events-auto">
-                Interact
+            <button id="btn-interact" class="absolute top-1 right-[-4px] px-2.5 py-1.5 bg-amber-700/90 hover:bg-amber-600 border border-amber-400/80 rounded-xl text-[9px] font-black tracking-wider text-white shadow-md active:scale-90 transition-transform touch-action-manipulation pointer-events-auto flex items-center justify-center">
+                INTERACT
             </button>
             
-            <button id="btn-jump" class="absolute bottom-10 left-0 px-3 py-2 bg-emerald-700/90 hover:bg-emerald-600 border border-emerald-400/80 rounded-xl text-[9px] font-black tracking-wider text-white shadow-md active:scale-90 transition-transform touch-action-manipulation pointer-events-auto">
-                Jump
-            </button>
-
-            <button id="btn-cam-reset" class="absolute top-0 right-0 w-8 h-8 bg-slate-800/90 border border-slate-600 rounded-full text-xs text-white shadow-md active:scale-90 transition pointer-events-auto flex items-center justify-center">
-                📷
+            <button id="btn-jump" class="absolute bottom-4 left-[-12px] px-2.5 py-1.5 bg-emerald-700/90 hover:bg-emerald-600 border border-emerald-400/80 rounded-xl text-[9px] font-black tracking-wider text-white shadow-md active:scale-90 transition-transform touch-action-manipulation pointer-events-auto flex items-center justify-center">
+                JUMP
             </button>
         </div>
 
-        <div id="cam-joystick-base" class="absolute bottom-0 right-0 w-28 h-28 bg-slate-950/80 backdrop-blur-md border-2 border-slate-700/80 rounded-full flex items-center justify-center shadow-2xl pointer-events-auto touch-action-manipulation">
-            <div id="cam-joystick-knob" class="absolute w-12 h-12 bg-indigo-500 border-2 border-indigo-300 rounded-full shadow-md pointer-events-none transition-transform duration-75"></div>
+        <div id="joystick-base" class="relative w-28 h-28 bg-slate-950/80 backdrop-blur-md border-2 border-slate-700/80 rounded-full flex items-center justify-center shadow-2xl pointer-events-auto touch-action-manipulation">
+            <div id="joystick-knob" class="absolute w-12 h-12 bg-amber-500 border-2 border-amber-300 rounded-full shadow-md pointer-events-none transition-transform duration-75"></div>
+            <span class="absolute -top-5 text-[9px] font-black text-amber-400 tracking-wider">MOVE</span>
         </div>
     </div>
 

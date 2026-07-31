@@ -617,6 +617,7 @@ function initGameEngine() {
     // [SECTION 9: CAMERA SYSTEM (SWIPE & AUTO-ALIGN)]
     // =========================================================================
     let cameraAngle = 0;
+    let cameraPitch = 0.4;
     let isSwipingCamera = false;
     let activePointerId = null;
     let lastTouchX = 0;

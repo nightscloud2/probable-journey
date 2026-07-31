@@ -155,6 +155,18 @@ function initGameEngine() {
         document.getElementById('tab-btn-skills')?.classList.toggle('active', tabName === 'skills');
     };
 
+    window.craftItem = function(itemType) {
+    if (itemType === 'wall') {
+        if (inventory.wood >= 2) {
+            inventory.wood -= 2;
+            updateUI();
+            showMobileError("Crafted 1 Wooden Wall!");
+        } else {
+            showMobileError("Not enough wood! Requires 2 Wood.");
+        }
+    }
+};
+    
     // =========================================================================
     // [SECTION 3: THREE.JS SCENE, LIGHTING & TERRAIN]
     // =========================================================================

@@ -672,13 +672,19 @@ function initGameEngine() {
         requestAnimationFrame(animate);
         const delta = clock.getDelta();
 
-        // --- PASTE HERE ---
-        // Rotate camera angle based on Left Camera Joystick
+        // --- CAMERA JOYSTICK: HORIZONTAL & VERTICAL ROTATION ---
         if (Math.abs(camJoystickVector.x) > 0.05) {
             cameraAngle -= camJoystickVector.x * 2.5 * delta;
-            timeSinceLastManualCam = 0; // Pauses auto-alignment while actively steering camera
+            timeSinceLastManualCam = 0;
         }
-        // ------------------
+
+        if (Math.abs(camJoystickVector.y) > 0.05) {
+            cameraPitch += camJoystickVector.y * 1.5 * delta;
+            // Clamps camera pitch (prevents clipping through ground or going upside down)
+            cameraPitch = Math.max(0.1, Math.min(1.2, cameraPitch));
+            timeSinceLastManualCam = 0;
+        }
+        // --------------------------------------------------------
 
         const jx = joystickVector.x;
         const jy = joystickVector.y;
@@ -806,12 +812,16 @@ function initGameEngine() {
         }
 
         const aspect = window.innerWidth / window.innerHeight;
-        const camDistance = aspect > 1.0 ? 5.5 : 7.0;
-        const camHeight = aspect > 1.0 ? 2.8 : 3.5;
+        const camDistance = aspect > 1.0 ? 6.0 : 7.5;
 
-        camera.position.x = playerGroup.position.x + Math.sin(cameraAngle) * camDistance;
-        camera.position.z = playerGroup.position.z + Math.cos(cameraAngle) * camDistance;
-        camera.position.y = playerGroup.position.y + camHeight;
+        // 3D Spherical Orbit Positioning (Horizontal Angle + Vertical Pitch)
+        const horizDistance = camDistance * Math.cos(cameraPitch);
+        const vertDistance = camDistance * Math.sin(cameraPitch);
+
+        camera.position.x = playerGroup.position.x + Math.sin(cameraAngle) * horizDistance;
+        camera.position.z = playerGroup.position.z + Math.cos(cameraAngle) * horizDistance;
+        camera.position.y = playerGroup.position.y + vertDistance + 0.5;
+
         camera.lookAt(playerGroup.position.x, playerGroup.position.y + 1.2, playerGroup.position.z);
 
         renderer.render(scene, camera);

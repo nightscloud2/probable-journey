@@ -577,11 +577,14 @@ function initGameEngine() {
         };
     }
 
-// =========================================================================
+
+    // =========================================================================
     // [SECTION 8: DUAL JOYSTICK SYSTEM - MOVEMENT (RIGHT) & CAMERA (LEFT)]
     // =========================================================================
     let joystickVector = { x: 0, y: 0 };
-    let camJoystickVector = { x: 0, y: 0 }; // <--- ADD THIS LINE IF MISSING!
+    let camJoystickVector = { x: 0, y: 0 };
+
+    // --- 1. MOVEMENT JOYSTICK (RIGHT SIDE) ---
     const baseEl = document.getElementById('joystick-base');
     const knobEl = document.getElementById('joystick-knob');
 
@@ -611,6 +614,38 @@ function initGameEngine() {
         baseEl.addEventListener('pointerdown', (e) => { e.stopPropagation(); baseEl.setPointerCapture(e.pointerId); handleJoystick(e); });
         baseEl.addEventListener('pointermove', (e) => { if (baseEl.hasPointerCapture(e.pointerId)) handleJoystick(e); });
         baseEl.addEventListener('pointerup', (e) => { baseEl.releasePointerCapture(e.pointerId); resetJoystick(); });
+    }
+
+    // --- 2. CAMERA JOYSTICK (LEFT SIDE) ---
+    const camBaseEl = document.getElementById('cam-joystick-base');
+    const camKnobEl = document.getElementById('cam-joystick-knob');
+
+    function handleCamJoystick(e) {
+        if (!camBaseEl || !camKnobEl) return;
+        const rect = camBaseEl.getBoundingClientRect();
+        const touch = e.touches ? e.touches[0] : e;
+        
+        let dx = touch.clientX - (rect.left + rect.width / 2);
+        let dy = touch.clientY - (rect.top + rect.height / 2);
+        
+        const dist = Math.hypot(dx, dy);
+        const maxR = 40;
+        
+        if (dist > maxR) { dx = (dx / dist) * maxR; dy = (dy / dist) * maxR; }
+        camKnobEl.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+        
+        camJoystickVector = dist < 5 ? { x: 0, y: 0 } : { x: dx / maxR, y: dy / maxR };
+    }
+
+    function resetCamJoystick() {
+        if (camKnobEl) camKnobEl.style.transform = `translate(-50%, -50%)`;
+        camJoystickVector = { x: 0, y: 0 };
+    }
+
+    if (camBaseEl) {
+        camBaseEl.addEventListener('pointerdown', (e) => { e.stopPropagation(); camBaseEl.setPointerCapture(e.pointerId); handleCamJoystick(e); });
+        camBaseEl.addEventListener('pointermove', (e) => { if (camBaseEl.hasPointerCapture(e.pointerId)) handleCamJoystick(e); });
+        camBaseEl.addEventListener('pointerup', (e) => { camBaseEl.releasePointerCapture(e.pointerId); resetCamJoystick(); });
     }
 
     // =========================================================================
@@ -680,9 +715,10 @@ function initGameEngine() {
         }
 
         if (Math.abs(camJoystickVector.y) > 0.05) {
-            cameraPitch += camJoystickVector.y * 1.5 * delta;
-            // Clamps camera pitch (prevents clipping through ground or going upside down)
-            cameraPitch = Math.max(0.1, Math.min(1.2, cameraPitch));
+            // Adjust pitch speed; subtracts to make pushing UP look UP
+            cameraPitch -= camJoystickVector.y * 3.5 * delta;
+            // Clamps pitch between looking down from high (-0.2) to looking up (1.4)
+            cameraPitch = Math.max(-0.2, Math.min(1.4, cameraPitch));
             timeSinceLastManualCam = 0;
         }
         // --------------------------------------------------------
@@ -815,15 +851,21 @@ function initGameEngine() {
         const aspect = window.innerWidth / window.innerHeight;
         const camDistance = aspect > 1.0 ? 6.0 : 7.5;
 
-        // 3D Spherical Orbit Positioning (Horizontal Angle + Vertical Pitch)
+        // 3D Spherical Orbit Positioning
         const horizDistance = camDistance * Math.cos(cameraPitch);
         const vertDistance = camDistance * Math.sin(cameraPitch);
 
         camera.position.x = playerGroup.position.x + Math.sin(cameraAngle) * horizDistance;
         camera.position.z = playerGroup.position.z + Math.cos(cameraAngle) * horizDistance;
-        camera.position.y = playerGroup.position.y + vertDistance + 0.5;
+        
+        // Prevent clipping below terrain height
+        const targetCamY = playerGroup.position.y + vertDistance + 0.5;
+        const groundCamY = getTerrainHeight(camera.position.x, camera.position.z) + 0.4;
+        camera.position.y = Math.max(groundCamY, targetCamY);
 
-        camera.lookAt(playerGroup.position.x, playerGroup.position.y + 1.2, playerGroup.position.z);
+        // Dynamic Look-At point shifts view up/down for bow targeting
+        const lookTargetY = playerGroup.position.y + 1.2 - (cameraPitch - 0.4) * 1.8;
+        camera.lookAt(playerGroup.position.x, lookTargetY, playerGroup.position.z);
 
         renderer.render(scene, camera);
     }
@@ -835,4 +877,98 @@ function initGameEngine() {
         camera.updateProjectionMatrix();
         renderer.setSize(window.innerWidth, window.innerHeight);
     });
+
+        if (Math.abs(jx) > 0.05 || Math.abs(jy) > 0.05) {
+            const moveSpeed = 7.5;
+
+            const dx = (jx * Math.cos(cameraAngle) + jy * Math.sin(cameraAngle)) * moveSpeed * delta;
+            const dz = (-jx * Math.sin(cameraAngle) + jy * Math.cos(cameraAngle)) * moveSpeed * delta;
+
+            const nextX = playerGroup.position.x + dx;
+            const nextZ = playerGroup.position.z + dz;
+
+            if (canMoveTo(nextX, playerGroup.position.z)) playerGroup.position.x = nextX;
+            if (canMoveTo(playerGroup.position.x, nextZ)) playerGroup.position.z = nextZ;
+
+            playerGroup.rotation.y = Math.atan2(dx, dz);
+        }
+
+        for (let obs of obstacleColliders) {
+            const dist = Math.hypot(playerGroup.position.x - obs.x, playerGroup.position.z - obs.z);
+            const minDist = PLAYER_RADIUS + obs.radius;
+            
+            if (dist < minDist && dist > 0.001) {
+                const overlap = minDist - dist;
+                const pushX = (playerGroup.position.x - obs.x) / dist;
+                const pushZ = (playerGroup.position.z - obs.z) / dist;
+                
+                playerGroup.position.x += pushX * overlap;
+                playerGroup.position.z += pushZ * overlap;
+            }
+        }
+
+        if (timeSinceLastManualCam > 1.5 && continuousMoveTime > 0.5) {
+            let targetAngle = playerGroup.rotation.y - Math.PI;
+            
+            let diff = targetAngle - cameraAngle;
+            diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+            
+            const glideSpeed = 2.5; 
+            cameraAngle += diff * glideSpeed * delta;
+        }
+
+        const groundY = getTerrainHeight(playerGroup.position.x, playerGroup.position.z);
+        if (isGrounded) {
+            playerGroup.position.y = groundY;
+        } else {
+            playerGroup.position.y += playerVY;
+            playerVY -= 0.8 * delta;
+            if (playerGroup.position.y <= groundY) {
+                playerGroup.position.y = groundY;
+                playerVY = 0;
+                isGrounded = true;
+            }
+        }
+
+        creatures.forEach(c => c.update(delta, playerGroup.position));
+
+        for (let i = projectiles.length - 1; i >= 0; i--) {
+            const p = projectiles[i];
+            p.life -= delta;
+            p.mesh.position.x += p.dirX * p.speed * delta;
+            p.mesh.position.z += p.dirZ * p.speed * delta;
+
+            for (let c of creatures) {
+                if (c.hp > 0 && Math.hypot(p.mesh.position.x - c.x, p.mesh.position.z - c.z) < 1.2) {
+                    c.takeDamage(p.damage);
+                    p.life = 0;
+                    break;
+                }
+            }
+
+            if (p.life <= 0) {
+                scene.remove(p.mesh);
+                projectiles.splice(i, 1);
+            }
+        }
+
+        for (let i = traps.length - 1; i >= 0; i--) {
+            const t = traps[i];
+            for (let c of creatures) {
+                if (c.hp > 0 && Math.hypot(t.x - c.x, t.z - c.z) < 1.0) {
+                    c.rootedTimer = 4.0;
+                    c.takeDamage(5);
+                    scene.remove(t.mesh);
+                    traps.splice(i, 1);
+                    break;
+                }
+            }
+        }
+
+        let closest = null;
+        let minDist = 3.5;
+        harvestables.forEach(h => {
+            const d = Math.hypot(playerGroup.position.x - h.x, playerGroup.position.z - h.z);
+            if (d < minDist) { minDist = d; closest = h; }
+        });
 }

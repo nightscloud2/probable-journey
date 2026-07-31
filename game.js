@@ -577,10 +577,11 @@ function initGameEngine() {
         };
     }
 
-    // =========================================================================
-    // [SECTION 8: JOYSTICK CONTROL SYSTEM]
+// =========================================================================
+    // [SECTION 8: DUAL JOYSTICK SYSTEM - MOVEMENT (RIGHT) & CAMERA (LEFT)]
     // =========================================================================
     let joystickVector = { x: 0, y: 0 };
+    let camJoystickVector = { x: 0, y: 0 }; // <--- ADD THIS LINE IF MISSING!
     const baseEl = document.getElementById('joystick-base');
     const knobEl = document.getElementById('joystick-knob');
 

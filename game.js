@@ -1,9 +1,8 @@
 // =========================================================================
 // [SECTION 0: ERROR HANDLING, LOGGING & DOM BINDINGS]
 // =========================================================================
-const GAME_VERSION = "v0.0.6";
+const GAME_VERSION = "v0.0.3";
 
-// Displays errors on the mobile UI for easier debugging
 function showMobileError(msg) {
     const logEl = document.getElementById('mobile-log');
     if (logEl) {
@@ -20,12 +19,12 @@ window.onerror = function(msg, url, lineNo) {
 
 // Centralized UI Event Binding
 document.addEventListener("DOMContentLoaded", () => {
-    // 1. Inject Version across all relevant UI elements
+    // 1. Inject Version
     document.querySelectorAll('.game-version').forEach(el => {
         el.innerText = GAME_VERSION;
     });
 
-    // 2. Screen Transitions for main menu navigation
+    // 2. Screen Transitions
     document.getElementById('btn-show-creation')?.addEventListener('click', () => window.showCharacterCreation());
     document.getElementById('btn-start-game')?.addEventListener('click', () => window.startGame());
 
@@ -33,17 +32,17 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById('btn-g-m')?.addEventListener('click', () => window.selectGender('MALE'));
     document.getElementById('btn-g-f')?.addEventListener('click', () => window.selectGender('FEMALE'));
 
-    // 4. Class Selectors (Brawler, Hunter, Mage)
+    // 4. Class Selectors
     document.getElementById('btn-c-brawler')?.addEventListener('click', () => window.selectClass('BRAWLER'));
     document.getElementById('btn-c-hunter')?.addEventListener('click', () => window.selectClass('HUNTER'));
     document.getElementById('btn-c-mage')?.addEventListener('click', () => window.selectClass('MAGE'));
 
-    // 5. Tab Switchers (Inventory/Craft/Skills panels)
+    // 5. Tab Switchers (Inventory/Craft/Skills)
     document.getElementById('tab-btn-inv')?.addEventListener('click', () => window.switchTab('inv'));
     document.getElementById('tab-btn-craft')?.addEventListener('click', () => window.switchTab('craft'));
     document.getElementById('tab-btn-skills')?.addEventListener('click', () => window.switchTab('skills'));
 
-    // 6. Menu Modal toggles
+    // 6. Menu Modal
     document.getElementById('btn-menu-open')?.addEventListener('click', () => {
         document.getElementById('menu-modal')?.classList.remove('hidden');
     });
@@ -58,7 +57,6 @@ document.addEventListener("DOMContentLoaded", () => {
 let playerGender = 'MALE';
 let playerClass = 'BRAWLER';
 
-// Updates the active gender state and UI styling
 window.selectGender = function(g) {
     playerGender = g;
     document.getElementById('btn-g-m')?.classList.toggle('active', g === 'MALE');
@@ -71,7 +69,7 @@ window.selectClass = function(c) {
     document.getElementById('btn-c-brawler')?.classList.toggle('active', c === 'BRAWLER');
     document.getElementById('btn-c-hunter')?.classList.toggle('active', c === 'HUNTER');
     document.getElementById('btn-c-mage')?.classList.toggle('active', c === 'MAGE');
-    
+
     const desc = document.getElementById('class-desc');
     if (desc) {
         if (c === 'BRAWLER') desc.innerText = "Brawlers focus on raw power and close-range striking force.";
@@ -80,7 +78,6 @@ window.selectClass = function(c) {
     }
 };
 
-// Transitions from the title screen to the character creation screen
 window.showCharacterCreation = function() {
     try {
         const title = document.getElementById('title-screen');
@@ -92,7 +89,6 @@ window.showCharacterCreation = function() {
     }
 };
 
-// Hides UI screens and initializes the main 3D game engine
 window.startGame = function() {
     try {
         const title = document.getElementById('title-screen');
@@ -181,7 +177,7 @@ function initGameEngine() {
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.domElement.style.touchAction = 'none'; // Prevent browser gestures on canvas
+    renderer.domElement.style.touchAction = 'none';
     container.appendChild(renderer.domElement);
     
     // Lighting
@@ -208,11 +204,10 @@ function initGameEngine() {
     }
 
     const groundGeo = new THREE.PlaneGeometry(WORLD_SIZE, WORLD_SIZE, 50, 50);
-    groundGeo.rotateX(-Math.PI / 2); // Lay flat
+    groundGeo.rotateX(-Math.PI / 2);
+
     const pos = groundGeo.attributes.position;
     const colors = [];
-    
-    // Apply height map and vertex colors (sand, grass, stone) based on z-depth
     for (let i = 0; i < pos.count; i++) {
         const x = pos.getX(i);
         const z = pos.getZ(i);
@@ -229,8 +224,7 @@ function initGameEngine() {
     }
     
     groundGeo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-    groundGeo.computeVertexNormals(); // Required for lighting to affect terrain correctly
-    
+    groundGeo.computeVertexNormals();
     const groundMesh = new THREE.Mesh(
         groundGeo, 
         new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true })
@@ -307,11 +301,9 @@ function initGameEngine() {
     );
     chestMesh.position.set(3.5, getTerrainHeight(3.5, 28) + 0.4, 28);
     scene.add(chestMesh);
-    
-    // Global arrays to track objects for interaction and collision
+
     let harvestables = [];
     let obstacleColliders = [];
-    
     const chestData = { isChest: true, mesh: chestMesh, x: 3.5, z: 28, radius: 0.8 };
     harvestables.push(chestData);
     obstacleColliders.push(chestData);
@@ -378,6 +370,17 @@ function initGameEngine() {
         }
     }
 
+    function removeHarvestable(item) {
+        scene.remove(item.mesh);
+        harvestables = harvestables.filter(h => h !== item);
+        obstacleColliders = obstacleColliders.filter(o => o !== item);
+        
+        if (item.isCreature) {
+            const creatureIndex = creatures.indexOf(item);
+            if (creatureIndex > -1) creatures.splice(creatureIndex, 1);
+        }
+    }
+
     // =========================================================================
     // [SECTION 6: AUTONOMOUS CREATURE SYSTEM]
     // =========================================================================
@@ -399,7 +402,6 @@ function initGameEngine() {
             this.state = 'IDLE';
             this.radius = template.radius || 0.9;
             this.speed = template.speed || 2.5;
-            
             this.x = template.x;
             this.z = template.z;
             this.targetX = this.x;
@@ -419,7 +421,7 @@ function initGameEngine() {
             const gY = getTerrainHeight(this.x, this.z);
             this.group.position.set(this.x, gY, this.z);
             scene.add(this.group);
-            this.mesh = this.group; // Reference for generic object handling
+            this.mesh = this.group;
         }
         
         // Evaluates state transitions when taking damage
@@ -428,11 +430,11 @@ function initGameEngine() {
             if (this.hp <= 0) {
                 removeHarvestable(this);
             } else if (this.hp <= (this.maxHp * 0.1)) {
-                this.state = 'SUBMITTED'; // Tamable state
+                this.state = 'SUBMITTED';
             } else if (this.temperament !== 'DOCILE') {
-                this.state = 'HOSTILE'; // Aggro
+                this.state = 'HOSTILE';
             } else {
-                this.state = 'FLEEING'; // Run away
+                this.state = 'FLEEING';
             }
         }
         
@@ -477,9 +479,9 @@ function initGameEngine() {
             const dx = this.targetX - this.x;
             const dz = this.targetZ - this.z;
             const distToTarget = Math.hypot(dx, dz);
+
             const minPlayerDist = 0.5 + this.radius;
-            
-            // Process movement if outside minimum range
+
             if (distToTarget > minPlayerDist && this.state !== 'SUBMITTED') {
                 const angle = Math.atan2(dx, dz);
                 const moveX = this.x + Math.sin(angle) * this.speed * delta;
@@ -536,7 +538,7 @@ function initGameEngine() {
                             removeHarvestable(h);
                         }
                     }
-                    break; // Only hit one object per swing
+                    break;
                 }
             }
         } else if (playerClass === 'HUNTER' || playerClass === 'MAGE') {
@@ -544,7 +546,6 @@ function initGameEngine() {
             const pGeo = (playerClass === 'MAGE') ? new THREE.SphereGeometry(0.3) : new THREE.CylinderGeometry(0.05, 0.05, 0.8);
             const pMat = new THREE.MeshBasicMaterial({ color: (playerClass === 'MAGE') ? 0x00ffff : 0xffaa00 });
             const proj = new THREE.Mesh(pGeo, pMat);
-            
             proj.position.copy(playerGroup.position);
             proj.position.y += 1.2;
             proj.rotation.y = playerGroup.rotation.y;
@@ -581,10 +582,7 @@ function initGameEngine() {
             blast.position.set(playerGroup.position.x, getTerrainHeight(playerGroup.position.x, playerGroup.position.z) + 0.1, playerGroup.position.z);
             scene.add(blast);
             
-            // Cleanup blast visual shortly after casting
             setTimeout(() => scene.remove(blast), 400);
-            
-            // Apply AOE damage
             creatures.forEach(c => {
                 if (Math.hypot(playerGroup.position.x - c.x, playerGroup.position.z - c.z) < 3.8) {
                     c.takeDamage(12);
@@ -618,72 +616,65 @@ function initGameEngine() {
         };
     }
 
-// =========================================================================
-// [SECTION 8: JOYSTICK CONTROL SYSTEM]
-// =========================================================================
-let joystickVector = { x: 0, y: 0 };
-const baseEl = document.getElementById('joystick-base');
-const knobEl = document.getElementById('joystick-knob');
+    if (attackBtn) attackBtn.onclick = performPrimaryAttack;
+    if (skillBtn) skillBtn.onclick = performClassSkill;
 
-let isDraggingJoystick = false;
-let joystickPointerId = null;
-const maxRadius = 32; // Matches your new HUD dimensions
-
-function handleJoystickMove(e) {
-    if (!isDraggingJoystick || !baseEl || !knobEl) return;
-    
-    // Support multi-touch pointer targeting
-    if (e.pointerId !== undefined && joystickPointerId !== null && e.pointerId !== joystickPointerId) return;
-
-    const rect = baseEl.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-
-    let deltaX = e.clientX - centerX;
-    let deltaY = e.clientY - centerY;
-    const distance = Math.hypot(deltaX, deltaY);
-
-    if (distance > maxRadius) {
-        const angle = Math.atan2(deltaY, deltaX);
-        deltaX = Math.cos(angle) * maxRadius;
-        deltaY = Math.sin(angle) * maxRadius;
+    const interactBtn = document.getElementById('btn-interact');
+    if (interactBtn) {
+        interactBtn.onclick = () => {
+            if (!chestLooted && Math.hypot(playerGroup.position.x - chestData.x, playerGroup.position.z - chestData.z) < 2.5) {
+                chestLooted = true;
+                inventory.hatchet += 1;
+                inventory.knife += 1;
+                updateUI();
+                removeHarvestable(chestData);
+            }
+        };
     }
 
-    knobEl.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+    const jumpBtn = document.getElementById('btn-jump');
+    if (jumpBtn) {
+        jumpBtn.onclick = () => {
+            if (isGrounded) { playerVY = 0.24; isGrounded = false; }
+        };
+    }
 
-    // Deadzone threshold (under 4px registers as zero)
-    joystickVector = distance < 4 ? { x: 0, y: 0 } : { x: deltaX / maxRadius, y: deltaY / maxRadius };
-}
+    // =========================================================================
+    // [SECTION 8: JOYSTICK CONTROL SYSTEM]
+    // =========================================================================
+    let joystickVector = { x: 0, y: 0 };
+    const baseEl = document.getElementById('joystick-base');
+    const knobEl = document.getElementById('joystick-knob');
 
-function stopJoystick(e) {
-    if (!isDraggingJoystick) return;
-    if (e && e.pointerId !== undefined && joystickPointerId !== null && e.pointerId !== joystickPointerId) return;
+    function handleJoystick(e) {
+        if (!baseEl || !knobEl) return;
+        const rect = baseEl.getBoundingClientRect();
+        const touch = e.touches ? e.touches[0] : e;
+        
+        let dx = touch.clientX - (rect.left + rect.width / 2);
+        let dy = touch.clientY - (rect.top + rect.height / 2);
+        
+        const dist = Math.hypot(dx, dy);
+        const maxR = 40;
+        
+        if (dist > maxR) { dx = (dx / dist) * maxR; dy = (dy / dist) * maxR; }
+        knobEl.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+        
+        joystickVector = dist < 5 ? { x: 0, y: 0 } : { x: dx / maxR, y: dy / maxR };
+    }
 
-    isDraggingJoystick = false;
-    joystickPointerId = null;
-
-    if (knobEl) {
-        knobEl.style.transform = 'translate(0px, 0px)';
+    function resetJoystick() {
+        if (knobEl) knobEl.style.transform = `translate(-50%, -50%)`;
+        joystickVector = { x: 0, y: 0 };
     }
     joystickVector = { x: 0, y: 0 };
 }
 
-if (baseEl) {
-    baseEl.addEventListener('pointerdown', (e) => {
-        e.stopPropagation();
-        isDraggingJoystick = true;
-        joystickPointerId = e.pointerId;
-        baseEl.setPointerCapture(e.pointerId);
-        handleJoystickMove(e);
-    });
-
-    baseEl.addEventListener('pointermove', handleJoystickMove);
-    baseEl.addEventListener('pointerup', (e) => {
-        if (baseEl.hasPointerCapture(e.pointerId)) baseEl.releasePointerCapture(e.pointerId);
-        stopJoystick(e);
-    });
-    baseEl.addEventListener('pointercancel', stopJoystick);
-}
+    if (baseEl) {
+        baseEl.addEventListener('pointerdown', (e) => { e.stopPropagation(); baseEl.setPointerCapture(e.pointerId); handleJoystick(e); });
+        baseEl.addEventListener('pointermove', (e) => { if (baseEl.hasPointerCapture(e.pointerId)) handleJoystick(e); });
+        baseEl.addEventListener('pointerup', (e) => { baseEl.releasePointerCapture(e.pointerId); resetJoystick(); });
+    }
 
     // =========================================================================
     // [SECTION 9: CAMERA SYSTEM (SWIPE & AUTO-ALIGN)]
@@ -693,10 +684,9 @@ if (baseEl) {
     let activePointerId = null;
     let lastTouchX = 0;
     
-    let timeSinceLastManualCam = 100; // Time since user manually panned
-    let continuousMoveTime = 0; // Time moving forward continuously
-    
-    // Detects screen swipes outside of UI elements to rotate camera manually
+    let timeSinceLastManualCam = 100; 
+    let continuousMoveTime = 0;
+
     window.addEventListener('pointerdown', (e) => {
         if (e.target.closest('button') || e.target.closest('#menu-modal') || e.target.closest('#joystick-base') || e.target.closest('.ui-layer')) return;
         
@@ -710,22 +700,22 @@ if (baseEl) {
             const deltaX = e.clientX - lastTouchX;
             cameraAngle -= deltaX * 0.005; 
             lastTouchX = e.clientX;
-            timeSinceLastManualCam = 0; // Reset auto-align timer
+            timeSinceLastManualCam = 0; 
         }
     });
-    
+
     const stopSwipe = (e) => {
         if (e.pointerId === activePointerId) {
             isSwipingCamera = false;
             activePointerId = null;
         }
     };
+
     window.addEventListener('pointerup', stopSwipe);
     window.addEventListener('pointercancel', stopSwipe);
-    
-    updateUI(); // Final setup step
-    
-    // Validates if a proposed movement position violates map bounds or object collisions
+
+    updateUI();
+
     function canMoveTo(nextX, nextZ) {
         const halfBoundary = (WORLD_SIZE / 2) - 1.5;
         if (Math.abs(nextX) > halfBoundary || Math.abs(nextZ) > halfBoundary) return false;
@@ -748,21 +738,21 @@ if (baseEl) {
         // --- MOVEMENT & INPUT LOGIC ---
         const jx = joystickVector.x;
         const jy = joystickVector.y;
-        
+
         if (!isSwipingCamera) {
             timeSinceLastManualCam += delta;
         }
-        
+
         let isMovingForward = jy < -0.3;
         if (isMovingForward) {
             continuousMoveTime += delta;
         } else {
             continuousMoveTime = 0; 
         }
-        
+
         if (Math.abs(jx) > 0.05 || Math.abs(jy) > 0.05) {
             const moveSpeed = 7.5;
-            // Calculate movement relative to current camera angle
+
             const dx = (jx * Math.cos(cameraAngle) + jy * Math.sin(cameraAngle)) * moveSpeed * delta;
             const dz = (-jx * Math.sin(cameraAngle) + jy * Math.cos(cameraAngle)) * moveSpeed * delta;
             
@@ -776,9 +766,7 @@ if (baseEl) {
             // Orient character model to movement direction
             playerGroup.rotation.y = Math.atan2(dx, dz);
         }
-        
-        // --- COLLISION RESOLUTION ---
-        // Resolves cases where an entity forced a player overlap
+
         for (let obs of obstacleColliders) {
             const dist = Math.hypot(playerGroup.position.x - obs.x, playerGroup.position.z - obs.z);
             const minDist = PLAYER_RADIUS + obs.radius;
@@ -792,21 +780,17 @@ if (baseEl) {
                 playerGroup.position.z += pushZ * overlap;
             }
         }
-        
-        // --- CAMERA AUTO-ALIGN ---
-        // Gently returns the camera behind the player if moving forward without manual swiping
+
         if (timeSinceLastManualCam > 1.5 && continuousMoveTime > 0.5) {
             let targetAngle = playerGroup.rotation.y - Math.PI;
             
             let diff = targetAngle - cameraAngle;
-            // Normalize angle difference
             diff = Math.atan2(Math.sin(diff), Math.cos(diff));
             
             const glideSpeed = 2.5; 
             cameraAngle += diff * glideSpeed * delta;
         }
-        
-        // --- GRAVITY & JUMPING ---
+
         const groundY = getTerrainHeight(playerGroup.position.x, playerGroup.position.z);
         if (isGrounded) {
             playerGroup.position.y = groundY;
@@ -821,8 +805,7 @@ if (baseEl) {
                 isGrounded = true;
             }
         }
-        
-        // --- ENTITY UPDATES ---
+
         creatures.forEach(c => c.update(delta, playerGroup.position));
         
         // Update projectiles and evaluate creature hits
@@ -886,13 +869,11 @@ if (baseEl) {
             targetRing.visible = false;
             if (targetOverlay) targetOverlay.style.display = 'none';
         }
-        
-        // --- CAMERA POSITIONING ---
+
         const aspect = window.innerWidth / window.innerHeight;
-        // Adjust camera height and distance based on screen aspect ratio
         const camDistance = aspect > 1.0 ? 5.5 : 7.0;
         const camHeight = aspect > 1.0 ? 2.8 : 3.5;
-        
+
         camera.position.x = playerGroup.position.x + Math.sin(cameraAngle) * camDistance;
         camera.position.z = playerGroup.position.z + Math.cos(cameraAngle) * camDistance;
         camera.position.y = playerGroup.position.y + camHeight;
@@ -909,4 +890,4 @@ if (baseEl) {
         camera.updateProjectionMatrix();
         renderer.setSize(window.innerWidth, window.innerHeight);
     });
-        }
+}

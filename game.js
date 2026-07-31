@@ -766,14 +766,20 @@ function initGameEngine() {
             }
         }
 
+// Auto-realign camera horizontally AND vertically when moving forward
         if (timeSinceLastManualCam > 1.5 && continuousMoveTime > 0.5) {
+            // 1. Horizontal realignment behind player
             let targetAngle = playerGroup.rotation.y - Math.PI;
-            
-            let diff = targetAngle - cameraAngle;
-            diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+            let diffAngle = targetAngle - cameraAngle;
+            diffAngle = Math.atan2(Math.sin(diffAngle), Math.cos(diffAngle));
             
             const glideSpeed = 2.5; 
-            cameraAngle += diff * glideSpeed * delta;
+            cameraAngle += diffAngle * glideSpeed * delta;
+
+            // 2. Vertical realignment back to default height (0.4)
+            const DEFAULT_PITCH = 0.4;
+            let diffPitch = DEFAULT_PITCH - cameraPitch;
+            cameraPitch += diffPitch * glideSpeed * delta;
         }
 
         const groundY = getTerrainHeight(playerGroup.position.x, playerGroup.position.z);
